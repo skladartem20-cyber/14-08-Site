@@ -1,0 +1,59 @@
+{
+  "site": {
+    "title": "SPACEXTEN",
+    "accent": "#3b82f6",
+    "theme": "light",
+    "orderUrl": "",
+    "sliderRatio": "1600/250",
+    "colors": { "grad1": "#2563eb", "grad2": "#0ea5c4", "sub1": "#f59e0b", "sub2": "#f97316" }
+  },
+  "header": {
+    "image": "",
+    "logo": "",
+    "badge": "Профессиональное оборудование",
+    "title": "SPACEXTEN",
+    "subtitle": "Техника, запчасти и сервис для тех, кто ценит надёжность."
+  },
+  "banners": { "desktop": [], "mobile": [] },
+  "about": {
+    "title": "О компании",
+    "text": "SPACEXTEN — поставщик профессионального оборудования и комплектующих. Мы подбираем технику под задачу, обеспечиваем оригинальными запчастями и сопровождаем подробными инструкциями по эксплуатации.",
+    "features": [
+      { "title": "Оригинальные запчасти", "text": "Полная совместимость с вашей техникой." },
+      { "title": "Гарантия и сервис", "text": "Поддержка на всём сроке эксплуатации." },
+      { "title": "Видео и PDF инструкции", "text": "Понятные материалы к каждому товару." }
+    ]
+  },
+  "productCategories": [],
+  "products": [],
+  "instructionCategories": [],
+  "leads": [],
+  "orders": [],
+  "socials": [],
+  "layout": [
+    { "type": "section", "key": "about" },
+    { "type": "section", "key": "catalog" },
+    { "type": "section", "key": "wholesale" },
+    { "type": "section", "key": "instructions" },
+    { "type": "section", "key": "contacts" }
+  ],
+  "sectionText": {
+    "catalog": { "eyebrow": "Продукция", "title": "Каталог", "lead": "Выберите категорию и добавляйте товары в корзину. Нажмите на карточку, чтобы увидеть фото, цену, запчасти и инструкцию." },
+    "wholesale": { "eyebrow": "Оптом", "title": "Нужен оптовый прайс-лист?", "lead": "Оставьте номер телефона — менеджер свяжется с вами, ответит на вопросы и пришлёт актуальные оптовые цены." },
+    "instructions": { "eyebrow": "Поддержка", "title": "Инструкции", "lead": "Выберите категорию, затем нужную инструкцию — откроется видео, текст или PDF." },
+    "contacts": { "eyebrow": "Связь", "title": "Контакты", "lead": "" }
+  },
+  "contacts": {
+    "address": "г. Москва, ул. Примерная, д. 1",
+    "phone": "+7 (900) 000-00-00",
+    "email": "info@spacexten.ru",
+    "telegram": "",
+    "whatsapp": "",
+    "hours": "Пн–Пт: 9:00–19:00",
+    "note": "Свяжитесь с нами любым удобным способом — поможем подобрать оборудование."
+  },
+  "analytics": { "visits": 0, "unique": 0, "cartOpens": 0 },
+  "security": { "failedAttempts": 0, "lockUntil": 0 },
+  "loginLog": [],
+  "backupMeta": { "last": 0 }
+}

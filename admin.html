@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Панель управления</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body class="admin-body">
+  <div class="login" id="login-screen">
+    <form class="login__card" id="login-form">
+      <div class="login__logo">SPACEXTEN</div>
+      <h1>Вход в панель</h1>
+      <p class="login__hint">Введите логин и пароль для управления сайтом.</p>
+      <input type="text" id="login" class="input" placeholder="Логин" autocomplete="username" autocapitalize="off" spellcheck="false" />
+      <input type="password" id="password" class="input" placeholder="Пароль" autocomplete="current-password" />
+      <button type="submit" class="btn btn--primary btn--block" id="login-submit">Войти</button>
+      <div class="login__error" id="login-error"></div>
+      <a href="/" class="login__back">← Вернуться на сайт</a>
+    </form>
+  </div>
+
+  <div class="admin" id="admin-app">
+    <aside class="admin__sidebar" id="admin-sidebar">
+      <div class="admin__brand">SPACEXTEN<span>панель</span></div>
+      <nav class="admin__tabs" id="admin-tabs">
+        <button class="admin__tab active" data-tab="header">Шапка и баннеры</button>
+        <button class="admin__tab" data-tab="about">О компании</button>
+        <button class="admin__tab" data-tab="catalog">Каталог</button>
+        <button class="admin__tab" data-tab="instructions">Инструкции</button>
+        <button class="admin__tab" data-tab="blocks">Блоки и тексты</button>
+        <button class="admin__tab" data-tab="socials">Соцсети</button>
+        <button class="admin__tab" data-tab="orders">Заказы <span class="tab-badge" id="orders-badge" hidden>0</span></button>
+        <button class="admin__tab" data-tab="leads">Заявки <span class="tab-badge" id="leads-badge" hidden>0</span></button>
+        <button class="admin__tab" data-tab="analytics">Аналитика</button>
+        <button class="admin__tab" data-tab="security">Входы и безопасность</button>
+        <button class="admin__tab" data-tab="backups">Резервные копии</button>
+        <button class="admin__tab" data-tab="contacts">Контакты</button>
+        <button class="admin__tab" data-tab="settings">Настройки</button>
+      </nav>
+      <div class="admin__bottom">
+        <a href="/" target="_blank" class="admin__link">Открыть сайт ↗</a>
+        <button class="admin__logout" id="logout-btn">Выйти</button>
+      </div>
+    </aside>
+    <main class="admin__main">
+      <button class="admin__menu-btn" id="admin-menu-btn" aria-label="Меню">☰ Меню</button>
+      <div class="admin__panel" id="panel"></div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

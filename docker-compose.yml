@@ -1,0 +1,13 @@
+services:
+  spacexten:
+    build: .
+    container_name: spacexten
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      ADMIN_LOGIN: "SP2026"
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    restart: unless-stopped

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>SPACEXTEN — профессиональное оборудование и запчасти</title>
+  <meta name="description" content="SPACEXTEN — оборудование, оригинальные запчасти, видео и PDF инструкции." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+
+  
+  <header class="nav" id="nav">
+    <div class="nav__inner container">
+      <a href="#top" class="nav__brand"><span class="nav__name" id="brand-name">SPACEXTEN</span></a>
+      <nav class="nav__links" id="nav-links">
+        <div class="nav__dropdown" id="nav-catalog-dd">
+          <button class="nav__pill nav__dropbtn" id="nav-catalog-btn" aria-haspopup="true" aria-expanded="false">Каталог <span class="nav__caret">▾</span></button>
+          <div class="nav__menu" id="nav-catalog-menu"></div>
+        </div>
+        <a class="nav__pill" href="#about">О компании</a>
+        <a class="nav__pill" href="#wholesale">Оптовый прайс</a>
+        <a class="nav__pill" href="#instructions">Инструкции</a>
+        <a class="nav__pill" href="#contacts">Контакты</a>
+      </nav>
+      <div class="nav__right">
+        <button class="cart-btn" id="cart-btn" aria-label="Корзина">
+          Корзина<span class="cart-btn__count" id="cart-count" hidden>0</span>
+        </button>
+        <button class="nav__burger" id="burger" aria-label="Меню"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  
+  <section class="hero" id="top">
+    <div class="hero__bg" id="hero-bg"></div>
+    <div class="hero__head container">
+      <span class="hero__badge" id="hero-badge"></span>
+      <img class="hero__logo" id="hero-logo" alt="SPACEXTEN" hidden />
+      <h1 class="hero__title" id="hero-title">SPACEXTEN</h1>
+      <p class="hero__subtitle" id="hero-subtitle"></p>
+    </div>
+    <div class="container">
+      <div class="slider" id="banner-slider" aria-label="Баннеры">
+        <div class="slider__track" id="slider-track"></div>
+      </div>
+    </div>
+    <div class="hero__actions container">
+      <a href="#catalog" class="btn btn--primary">Смотреть каталог</a>
+      <a href="#contacts" class="btn btn--ghost">Связаться</a>
+    </div>
+  </section>
+
+  <main id="main-blocks">
+    
+    <section class="section" id="about" data-block="about">
+      <div class="container">
+        <p class="eyebrow" id="about-eyebrow">Кто мы</p>
+        <h2 class="section__title" id="about-title">О компании</h2>
+        <p class="section__lead" id="about-text"></p>
+        <div class="features" id="about-features"></div>
+      </div>
+    </section>
+
+    
+    <section class="section" id="catalog" data-block="catalog">
+      <div class="container">
+        <p class="eyebrow" id="catalog-eyebrow">Продукция</p>
+        <h2 class="section__title" id="catalog-title">Каталог</h2>
+        <p class="section__lead" id="catalog-lead"></p>
+        <div class="catalog-tools">
+          <div class="search">
+            <input type="search" id="catalog-search" class="search__input" placeholder="Поиск товаров по названию..." autocomplete="off" />
+            <button class="search__clear" id="search-clear" aria-label="Очистить" hidden>×</button>
+          </div>
+        </div>
+        <div class="chips" id="catalog-chips" role="tablist"></div>
+        <div class="chips chips--sub" id="catalog-subchips"></div>
+        <div class="catalog-grid" id="catalog-grid"></div>
+        <p class="empty-note" id="catalog-empty" hidden>Товары скоро появятся.</p>
+      </div>
+    </section>
+
+    
+    <section class="section wholesale" id="wholesale" data-block="wholesale">
+      <div class="container">
+        <div class="wholesale__card">
+          <div class="wholesale__text">
+            <p class="eyebrow" id="wholesale-eyebrow">Оптом</p>
+            <h2 class="wholesale__title" id="wholesale-title">Нужен оптовый прайс-лист?</h2>
+            <p class="wholesale__lead" id="wholesale-lead"></p>
+          </div>
+          <form class="wholesale__form" id="lead-form">
+            <input class="winput" id="lead-phone" type="tel" placeholder="Телефон*" autocomplete="tel" required />
+            <input class="winput" id="lead-city" type="text" placeholder="Город" autocomplete="address-level2" />
+            <textarea class="winput winput--area" id="lead-comment" placeholder="Комментарий (что интересует, объём и т.д.)"></textarea>
+            <button class="btn btn--primary btn--block" type="submit" id="lead-submit">Отправить заявку</button>
+            <p class="wholesale__status" id="lead-status"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    
+    <section class="section" id="instructions" data-block="instructions">
+      <div class="container">
+        <p class="eyebrow" id="instructions-eyebrow">Поддержка</p>
+        <h2 class="section__title" id="instructions-title">Инструкции</h2>
+        <p class="section__lead" id="instructions-lead"></p>
+        <div class="chips" id="instr-chips" role="tablist"></div>
+        <div class="instr-list" id="instr-list"></div>
+        <p class="empty-note" id="instructions-empty" hidden>Инструкции скоро появятся.</p>
+      </div>
+    </section>
+
+    
+    <section class="section" id="contacts" data-block="contacts">
+      <div class="container">
+        <p class="eyebrow" id="contacts-eyebrow">Связь</p>
+        <h2 class="section__title" id="contacts-title">Контакты</h2>
+        <p class="section__lead" id="contacts-note"></p>
+        <div class="contacts" id="contacts-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <span>© <span id="year"></span> SPACEXTEN</span>
+    </div>
+  </footer>
+
+  
+  <div class="social-fab" id="social-fab" hidden>
+    <div class="social-fab__list" id="social-fab-list"></div>
+    <button class="social-fab__toggle" id="social-fab-toggle" aria-label="Соцсети" aria-expanded="false">
+      <span class="social-fab__icon">✕</span>
+      <span class="social-fab__icon social-fab__icon--open">☰</span>
+    </button>
+  </div>
+
+  
+  <div class="modal" id="product-modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__dialog modal__dialog--wide" role="dialog" aria-modal="true">
+      <button class="modal__close" data-close aria-label="Закрыть">×</button>
+      <div class="modal__body" id="product-modal-body"></div>
+    </div>
+  </div>
+
+  
+  <div class="modal" id="viewer-modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__dialog modal__dialog--wide" role="dialog" aria-modal="true">
+      <button class="modal__close" data-close aria-label="Закрыть">×</button>
+      <div class="modal__body" id="viewer-modal-body"></div>
+    </div>
+  </div>
+
+  
+  <div class="modal" id="cart-modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__dialog modal__dialog--cart" role="dialog" aria-modal="true">
+      <button class="modal__close" data-close aria-label="Закрыть">×</button>
+      <div class="modal__body" id="cart-modal-body"></div>
+    </div>
+  </div>
+
+  <script src="/js/animations.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>
