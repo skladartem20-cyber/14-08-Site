@@ -120,8 +120,33 @@
     sliderEl.style.display = '';
     track.innerHTML = list.map((src) => `<div class="slide" style="background-image:url('${esc(src)}')"></div>`).join('');
 
-    function go(n) { slider.idx = (n + list.length) % list.length; track.style.transform = `translateX(-${slider.idx * 100}%)`; }
-    if (list.length > 1) slider.timer = setInterval(() => go(slider.idx + 1), 5000);
+    sliderEl.querySelectorAll('.slider-arrow, .slider-dots').forEach((el) => el.remove());
+
+    function go(n) { slider.idx = (n + list.length) % list.length; track.style.transform = `translateX(-${slider.idx * 100}%)`; updateDots(); }
+    function updateDots() {
+      const dots = sliderEl.querySelectorAll('.slider-dots .sd');
+      dots.forEach((d, i) => d.classList.toggle('active', i === slider.idx));
+    }
+    function restart() { if (slider.timer) clearInterval(slider.timer); if (list.length > 1) slider.timer = setInterval(() => go(slider.idx + 1), 5000); }
+
+    if (list.length > 1) {
+      const prev = document.createElement('button');
+      prev.className = 'slider-arrow slider-arrow--prev'; prev.setAttribute('aria-label', 'Предыдущий слайд');
+      prev.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      const next = document.createElement('button');
+      next.className = 'slider-arrow slider-arrow--next'; next.setAttribute('aria-label', 'Следующий слайд');
+      next.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      prev.addEventListener('click', (e) => { e.stopPropagation(); go(slider.idx - 1); restart(); });
+      next.addEventListener('click', (e) => { e.stopPropagation(); go(slider.idx + 1); restart(); });
+      sliderEl.appendChild(prev); sliderEl.appendChild(next);
+
+      const dots = document.createElement('div');
+      dots.className = 'slider-dots';
+      dots.innerHTML = list.map((_, i) => `<button class="sd ${i === 0 ? 'active' : ''}" data-i="${i}" aria-label="Слайд ${i + 1}"></button>`).join('');
+      dots.querySelectorAll('.sd').forEach((d) => d.addEventListener('click', (e) => { e.stopPropagation(); go(Number(d.dataset.i)); restart(); }));
+      sliderEl.appendChild(dots);
+    }
+    restart();
     go(0);
   }
 
@@ -191,15 +216,11 @@
   }
 
   function renderNavCatalog() {
-    const cats = DATA.productCategories || [];
+    const cats = (DATA.productCategories || []).filter((c) => c.published !== false);
     const menu = $('#nav-catalog-menu');
-    const opts = [{ id: '__all', name: 'Все товары' }].concat(cats.map((c) => ({ id: c.id, name: c.name })));
-    menu.innerHTML = opts.map((o) => `<button class="nav__menu-item" data-cat="${esc(o.id)}">${esc(o.name)}</button>`).join('');
-    $$('#nav-catalog-menu .nav__menu-item').forEach((b) => b.addEventListener('click', () => {
-      activeCatId = b.dataset.cat; activeSubId = '__all'; searchTerm = ''; $('#catalog-search').value = '';
-      renderCatalog(); closeCatalogDropdown(); closeMobileNav();
-      document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
-    }));
+    const items = [`<a class="nav__menu-item" href="/catalog/">Весь каталог</a>`]
+      .concat(cats.map((c) => `<a class="nav__menu-item" href="/catalog/${esc(c.slug)}/">${esc(c.name)}</a>`));
+    menu.innerHTML = items.join('');
   }
   function openCatalogDropdown() { $('#nav-catalog-dd').classList.add('open'); $('#nav-catalog-btn').setAttribute('aria-expanded', 'true'); }
   function closeCatalogDropdown() { $('#nav-catalog-dd').classList.remove('open'); $('#nav-catalog-btn').setAttribute('aria-expanded', 'false'); }
@@ -208,8 +229,8 @@
   let activeSubId = '__all';
   let searchTerm = '';
   function renderCatalog() {
-    const products = DATA.products || [];
-    const cats = DATA.productCategories || [];
+    const products = (DATA.products || []).filter((p) => p.published !== false);
+    const cats = (DATA.productCategories || []).filter((c) => c.published !== false);
     $('#catalog-empty').hidden = products.length > 0;
     const chips = [{ id: '__all', name: 'Все товары' }];
     cats.forEach((c) => chips.push({ id: c.id, name: c.name }));
@@ -273,29 +294,31 @@
       const tags = [];
       if (relCount) tags.push(`<span class="card__tag">+${relCount} запчасти</span>`);
       if (hasInstr) tags.push(`<span class="card__tag">Инструкция</span>`);
+      const slug = esc(p.slug || '');
+      const href = '/product/' + slug + '/';
       return `
       <article class="card reveal" data-id="${p.id}">
         ${plaque}
-        <div class="card__gallery" data-count="${imgs.length}">
+        <a class="card__gallery" href="${href}" data-count="${imgs.length}" aria-label="${esc(p.name)}">
           ${layers}
           ${imgs.length > 1 ? `<div class="card__gallery-dots">${imgs.map((_, i) => `<span class="cgd ${i === 0 ? 'active' : ''}"></span>`).join('')}</div>` : ''}
-        </div>
+        </a>
         <div class="card__info">
-          <h3 class="card__name">${esc(p.name)}</h3>
+          <h3 class="card__name"><a href="${href}">${esc(p.name)}</a></h3>
           ${tags.length ? `<div class="card__tags">${tags.join('')}</div>` : ''}
           ${p.price ? `<div class="card__price">${formatPrice(p.price, p.currency)}</div>` : '<div class="card__price card__price--na">Цена по запросу</div>'}
           <div class="card__actions">
             <button class="btn btn--primary btn--sm card__buy" data-id="${p.id}">В корзину</button>
-            <button class="btn btn--ghost btn--sm card__more" data-id="${p.id}">Подробнее</button>
+            <button class="btn btn--ghost btn--sm card__more" data-id="${p.id}">Быстрый просмотр</button>
           </div>
+          <a class="card__detail" href="${href}">Подробнее →</a>
         </div>
       </article>`;
     }).join('');
     $$('.card', grid).forEach((card) => {
       initHoverGallery(card);
-      $('.card__more', card).addEventListener('click', (e) => { e.stopPropagation(); openProduct(card.dataset.id); });
-      $('.card__buy', card).addEventListener('click', (e) => { e.stopPropagation(); addToCart(card.dataset.id); });
-      card.addEventListener('click', (e) => { if (!e.target.closest('button')) openProduct(card.dataset.id); });
+      $('.card__more', card).addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openProduct(card.dataset.id); });
+      $('.card__buy', card).addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); addToCart(card.dataset.id); });
     });
     initReveal();
   }
@@ -373,6 +396,7 @@
           ${p.price ? `<div class="pm__price">${formatPrice(p.price, p.currency)}</div>` : '<div class="pm__price pm__price--na">Цена по запросу</div>'}
           <div class="pm__actions">
             <button class="btn btn--primary" id="pm-buy">В корзину</button>
+            <a class="btn btn--ghost" href="/product/${esc(p.slug || '')}/">Открыть страницу</a>
             ${hasInstr ? `<button class="btn btn--ghost" id="pm-instr-jump">Инструкция</button>` : ''}
           </div>
           ${p.description ? `<p class="pm__desc">${esc(p.description)}</p>` : ''}
@@ -382,12 +406,14 @@
       </div>`;
 
     const mainEl = $('#pm-main');
-    $$('#product-modal-body .pm__thumb').forEach((t) => t.addEventListener('click', () => {
+    let curIdx = 0;
+    $$('#product-modal-body .pm__thumb').forEach((t, ti) => t.addEventListener('click', () => {
+      curIdx = ti;
       mainEl.style.backgroundImage = `url('${t.dataset.src}')`;
       mainEl.dataset.src = t.dataset.src;
       $$('#product-modal-body .pm__thumb').forEach((x) => x.classList.toggle('active', x === t));
     }));
-    if (mainImg) mainEl.addEventListener('click', () => openZoom(mainEl.dataset.src));
+    if (mainImg) mainEl.addEventListener('click', () => openLightbox(imgs, imgs.indexOf(mainEl.dataset.src) >= 0 ? imgs.indexOf(mainEl.dataset.src) : 0));
 
     $('#pm-buy').addEventListener('click', () => addToCart(p.id));
 
@@ -637,23 +663,57 @@
     const body = m.querySelector('.modal__body'); if (body && m.id !== 'cart-modal') body.innerHTML = '';
   }
   $$('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target.matches('[data-close]') || e.target.closest('[data-close]')) closeModal(m); }));
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeZoom(); $$('.modal.open').forEach(closeModal); } });
+  document.addEventListener('keydown', (e) => {
+    const lb = document.getElementById('zoom-box');
+    if (lb && lb.classList.contains('open')) {
+      if (e.key === 'ArrowLeft') return lbGo(-1);
+      if (e.key === 'ArrowRight') return lbGo(1);
+    }
+    if (e.key === 'Escape') { closeZoom(); $$('.modal.open').forEach(closeModal); }
+  });
 
-  function openZoom(src) {
-    if (!src) return;
+  let lbImages = [], lbIdx = 0;
+  function openLightbox(images, start) {
+    lbImages = (images || []).filter(Boolean);
+    if (!lbImages.length) return;
+    lbIdx = Math.max(0, Math.min(start || 0, lbImages.length - 1));
     let box = document.getElementById('zoom-box');
     if (!box) {
       box = document.createElement('div');
       box.id = 'zoom-box';
       box.className = 'zoom-box';
-      box.innerHTML = '<button class="zoom-box__close" aria-label="Закрыть">×</button><img class="zoom-box__img" alt="" />';
+      box.innerHTML =
+        '<button class="zoom-box__close" aria-label="Закрыть">×</button>' +
+        '<button class="zoom-box__nav zoom-box__nav--prev" aria-label="Предыдущее"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
+        '<img class="zoom-box__img" alt="" />' +
+        '<button class="zoom-box__nav zoom-box__nav--next" aria-label="Следующее"><svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
+        '<div class="zoom-box__count"></div>';
       document.body.appendChild(box);
-      box.addEventListener('click', (e) => { if (e.target === box || e.target.closest('.zoom-box__close')) closeZoom(); });
+      box.addEventListener('click', (e) => {
+        if (e.target === box || e.target.closest('.zoom-box__close')) return closeZoom();
+        if (e.target.closest('.zoom-box__nav--prev')) return lbGo(-1);
+        if (e.target.closest('.zoom-box__nav--next')) return lbGo(1);
+      });
+      let sx = 0;
+      box.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; }, { passive: true });
+      box.addEventListener('touchend', (e) => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40) lbGo(dx < 0 ? 1 : -1); });
     }
-    box.querySelector('.zoom-box__img').src = src;
+    lbRender();
     box.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
+  function lbRender() {
+    const box = document.getElementById('zoom-box');
+    if (!box) return;
+    box.querySelector('.zoom-box__img').src = lbImages[lbIdx];
+    const multi = lbImages.length > 1;
+    box.querySelectorAll('.zoom-box__nav').forEach((n) => { n.style.display = multi ? '' : 'none'; });
+    const count = box.querySelector('.zoom-box__count');
+    count.textContent = multi ? (lbIdx + 1) + ' / ' + lbImages.length : '';
+    count.style.display = multi ? '' : 'none';
+  }
+  function lbGo(d) { lbIdx = (lbIdx + d + lbImages.length) % lbImages.length; lbRender(); }
+  function openZoom(src) { openLightbox([src], 0); }
   function closeZoom() {
     const box = document.getElementById('zoom-box');
     if (box) box.classList.remove('open');

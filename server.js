@@ -4,7 +4,10 @@ const express = require('express');
 const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs');
 const storage = require('./storage.js');
+const seo = require('./seo.js');
+const telegram = require('./telegram.js');
 
 const app = express();
 app.disable('x-powered-by');
@@ -81,7 +84,8 @@ const SEED = {
   analytics: { visits: 0, unique: 0, cartOpens: 0 },
   security: { failedAttempts: 0, lockUntil: 0 },
   loginLog: [],
-  backupMeta: { last: 0 }
+  backupMeta: { last: 0 },
+  telegram: { notifyOrders: true, notifyLeads: true }
 };
 
 function normalize(d) {
@@ -104,13 +108,23 @@ function normalize(d) {
   d.about = Object.assign({ title: 'О компании', text: '', features: [] }, d.about || {});
   if (!Array.isArray(d.about.features)) d.about.features = [];
   d.productCategories = Array.isArray(d.productCategories) ? d.productCategories : [];
+  const catSlugs = new Set();
   d.productCategories.forEach((c) => {
     c.id = c.id || crypto.randomUUID();
     c.name = c.name || 'Без названия';
     c.subcategories = Array.isArray(c.subcategories) ? c.subcategories : [];
     c.subcategories.forEach((s) => { s.id = s.id || crypto.randomUUID(); s.name = s.name || 'Без названия'; });
+    let base = (typeof c.slug === 'string' && c.slug.trim()) ? seo.slugify(c.slug) : seo.slugify(c.name);
+    c.slug = seo.ensureUniqueSlug(base, catSlugs);
+    catSlugs.add(c.slug);
+    c.description = typeof c.description === 'string' ? c.description : '';
+    c.image = typeof c.image === 'string' ? c.image : '';
+    c.seoTitle = typeof c.seoTitle === 'string' ? c.seoTitle : '';
+    c.seoDescription = typeof c.seoDescription === 'string' ? c.seoDescription : '';
+    c.published = c.published !== false;
   });
   d.products = Array.isArray(d.products) ? d.products : [];
+  const prodSlugs = new Set();
   d.products.forEach((p) => {
     p.id = p.id || crypto.randomUUID();
     p.name = p.name || 'Без названия';
@@ -128,7 +142,19 @@ function normalize(d) {
     p.instruction.videoUrl = p.instruction.videoUrl || '';
     p.instruction.text = p.instruction.text || '';
     p.instruction.pdf = p.instruction.pdf || '';
+    let pbase = (typeof p.slug === 'string' && p.slug.trim()) ? seo.slugify(p.slug) : seo.slugify(p.name);
+    p.slug = seo.ensureUniqueSlug(pbase, prodSlugs);
+    prodSlugs.add(p.slug);
+    p.brand = typeof p.brand === 'string' ? p.brand : '';
+    p.sku = typeof p.sku === 'string' ? p.sku : '';
+    p.availability = ['in_stock', 'out', 'preorder'].includes(p.availability) ? p.availability : 'in_stock';
+    p.specs = Array.isArray(p.specs) ? p.specs.filter((s) => s && typeof s === 'object').map((s) => ({ name: String(s.name || ''), value: String(s.value || '') })) : [];
+    p.advantages = Array.isArray(p.advantages) ? p.advantages.map((a) => String(a || '')).filter(Boolean) : [];
+    p.seoTitle = typeof p.seoTitle === 'string' ? p.seoTitle : '';
+    p.seoDescription = typeof p.seoDescription === 'string' ? p.seoDescription : '';
+    p.published = p.published !== false;
     p.createdAt = p.createdAt || Date.now();
+    p.updatedAt = p.updatedAt || p.createdAt;
   });
   d.instructionCategories = Array.isArray(d.instructionCategories) ? d.instructionCategories : [];
   d.instructionCategories.forEach((c) => {
@@ -213,6 +239,9 @@ function normalize(d) {
   d.loginLog = Array.isArray(d.loginLog) ? d.loginLog.slice(-LOGIN_LOG_KEEP) : [];
   d.backupMeta = Object.assign({ last: 0 }, d.backupMeta || {});
   d.backupMeta.last = Number(d.backupMeta.last) || 0;
+  d.telegram = Object.assign({ notifyOrders: true, notifyLeads: true }, d.telegram || {});
+  d.telegram.notifyOrders = d.telegram.notifyOrders !== false;
+  d.telegram.notifyLeads = d.telegram.notifyLeads !== false;
   return d;
 }
 
@@ -372,12 +401,19 @@ app.get('/uploads/:name', async (req, res) => {
   }
 });
 
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+let INDEX_HTML = '';
+try { INDEX_HTML = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8'); } catch (e) { INDEX_HTML = ''; }
+
+app.get('/', (req, res) => {
+  if (!INDEX_HTML) return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const head = seo.renderHomeHead(readData(), seo.baseUrl(req));
+  res.type('html').send(INDEX_HTML.replace('</head>', head + '\n</head>'));
+});
 
 app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'ignore' }));
 
 app.get('/api/data', (req, res) => {
-  const { leads, orders, analytics, security, loginLog, backupMeta, ...pub } = readData();
+  const { leads, orders, analytics, security, loginLog, backupMeta, telegram: tg, ...pub } = readData();
   res.json(pub);
 });
 
@@ -418,6 +454,7 @@ app.post('/api/orders', (req, res) => {
   };
   data.orders.unshift(order);
   writeData(data);
+  if (data.telegram.notifyOrders) notifyOrder(order);
   res.json({ ok: true });
 });
 
@@ -437,8 +474,45 @@ app.post('/api/leads', (req, res) => {
   };
   data.leads.unshift(lead);
   writeData(data);
+  if (data.telegram.notifyLeads) notifyLead(lead);
   res.json({ ok: true });
 });
+
+function tgEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function fmtMoney(n, cur) {
+  const v = Number(n) || 0;
+  return v ? v.toLocaleString('ru-RU') + ' ' + (cur || '₽') : '';
+}
+function notifyOrder(order) {
+  const lines = [];
+  lines.push('🛒 <b>Новый заказ</b>');
+  lines.push('👤 Имя: <b>' + tgEsc(order.name) + '</b>');
+  lines.push('📞 Телефон: <b>' + tgEsc(order.phone) + '</b>');
+  if (order.delivery && order.delivery.method === 'delivery') {
+    lines.push('🚚 Доставка: ' + tgEsc([order.delivery.city, order.delivery.street].filter(Boolean).join(', ')));
+  } else {
+    lines.push('🏬 Самовывоз');
+  }
+  if (order.comment) lines.push('💬 Комментарий: ' + tgEsc(order.comment));
+  lines.push('');
+  lines.push('<b>Состав заказа:</b>');
+  (order.items || []).forEach((it) => {
+    const sum = it.price ? ' — ' + tgEsc(it.price) + ' ' + tgEsc(it.currency || '₽') : '';
+    lines.push('• ' + tgEsc(it.name) + ' × ' + it.qty + sum);
+  });
+  if (order.total) lines.push('\n💰 <b>Итого: ' + tgEsc(fmtMoney(order.total, (order.items[0] && order.items[0].currency) || '₽')) + '</b>');
+  telegram.sendMessage(lines.join('\n')).catch(() => {});
+}
+function notifyLead(lead) {
+  const lines = [];
+  lines.push('📩 <b>Новая заявка (оптовый прайс)</b>');
+  lines.push('📞 Телефон: <b>' + tgEsc(lead.phone) + '</b>');
+  if (lead.city) lines.push('🏙 Город: ' + tgEsc(lead.city));
+  if (lead.comment) lines.push('💬 Комментарий: ' + tgEsc(lead.comment));
+  telegram.sendMessage(lines.join('\n')).catch(() => {});
+}
 
 app.post('/api/login', rateLimit(12, 60 * 1000), (req, res) => {
   const ip = clientIp(req);
@@ -493,6 +567,28 @@ app.post('/api/track', rateLimit(120, 60 * 1000), (req, res) => {
 });
 
 app.get('/api/analytics', requireAuth, (req, res) => res.json(DB.analytics));
+
+app.get('/api/telegram/status', requireAuth, (req, res) => {
+  res.json(Object.assign({}, telegram.status(), {
+    notifyOrders: DB.telegram.notifyOrders,
+    notifyLeads: DB.telegram.notifyLeads
+  }));
+});
+
+app.put('/api/telegram', requireAuth, (req, res) => {
+  const data = readData();
+  if (req.body.notifyOrders !== undefined) data.telegram.notifyOrders = req.body.notifyOrders === true || req.body.notifyOrders === 'true';
+  if (req.body.notifyLeads !== undefined) data.telegram.notifyLeads = req.body.notifyLeads === true || req.body.notifyLeads === 'true';
+  writeData(data);
+  res.json({ ok: true, notifyOrders: data.telegram.notifyOrders, notifyLeads: data.telegram.notifyLeads });
+});
+
+app.post('/api/telegram/test', requireAuth, async (req, res) => {
+  if (!telegram.configured()) return res.status(400).json({ ok: false, error: 'Не заданы TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID в переменных окружения.' });
+  const result = await telegram.sendMessage('✅ <b>SPACEXTEN</b>\nТестовое сообщение. Уведомления о заказах и заявках подключены.');
+  if (result.ok) res.json({ ok: true });
+  else res.status(502).json({ ok: false, error: result.error || 'Не удалось отправить' });
+});
 app.get('/api/login-log', requireAuth, (req, res) => {
   res.json({ log: DB.loginLog.slice().reverse(), security: DB.security });
 });
@@ -741,9 +837,30 @@ app.put('/api/contacts', requireAuth, (req, res) => {
   res.json(data.contacts);
 });
 
+function uniqueCatSlug(desired, name, excludeId) {
+  const taken = new Set((DB.productCategories || []).filter((c) => c.id !== excludeId).map((c) => c.slug));
+  return seo.ensureUniqueSlug(seo.slugify(desired && desired.trim() ? desired : name), taken);
+}
+function uniqueProdSlug(desired, name, excludeId) {
+  const taken = new Set((DB.products || []).filter((p) => p.id !== excludeId).map((p) => p.slug));
+  return seo.ensureUniqueSlug(seo.slugify(desired && desired.trim() ? desired : name), taken);
+}
+function applyCategoryFields(cat, body) {
+  if (typeof body.description === 'string') cat.description = body.description;
+  if (typeof body.seoTitle === 'string') cat.seoTitle = body.seoTitle.trim();
+  if (typeof body.seoDescription === 'string') cat.seoDescription = body.seoDescription.trim();
+  if (body.published !== undefined) cat.published = body.published === true || body.published === 'true';
+}
+
 app.post('/api/product-categories', requireAuth, (req, res) => {
   const data = readData();
-  const category = { id: crypto.randomUUID(), name: (req.body.name || 'Новая категория').trim(), subcategories: [] };
+  const name = (req.body.name || 'Новая категория').trim();
+  const category = {
+    id: crypto.randomUUID(), name, subcategories: [],
+    slug: uniqueCatSlug(req.body.slug, name, null),
+    description: '', image: '', seoTitle: '', seoDescription: '', published: req.body.published === false ? false : true
+  };
+  applyCategoryFields(category, req.body);
   data.productCategories.push(category);
   writeData(data);
   res.json(category);
@@ -753,7 +870,30 @@ app.put('/api/product-categories/:id', requireAuth, (req, res) => {
   const data = readData();
   const cat = data.productCategories.find((c) => c.id === req.params.id);
   if (!cat) return res.status(404).json({ error: 'Категория не найдена' });
-  cat.name = (req.body.name ?? cat.name).trim();
+  if (typeof req.body.name === 'string' && req.body.name.trim()) cat.name = req.body.name.trim();
+  if (typeof req.body.slug === 'string' && req.body.slug.trim()) cat.slug = uniqueCatSlug(req.body.slug, cat.name, cat.id);
+  applyCategoryFields(cat, req.body);
+  writeData(data);
+  res.json(cat);
+});
+
+app.post('/api/product-categories/:id/image', requireAuth, upload.single('image'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Файл не получен' });
+  const data = readData();
+  const cat = data.productCategories.find((c) => c.id === req.params.id);
+  if (!cat) return res.status(404).json({ error: 'Категория не найдена' });
+  deleteUploaded(cat.image);
+  cat.image = await storage.putUpload(req.file);
+  writeData(data);
+  res.json(cat);
+});
+
+app.delete('/api/product-categories/:id/image', requireAuth, (req, res) => {
+  const data = readData();
+  const cat = data.productCategories.find((c) => c.id === req.params.id);
+  if (!cat) return res.status(404).json({ error: 'Категория не найдена' });
+  deleteUploaded(cat.image);
+  cat.image = '';
   writeData(data);
   res.json(cat);
 });
@@ -818,31 +958,58 @@ function cleanBadge(v) {
   return ['best', 'sale'].includes(v) ? v : '';
 }
 
+function parseSpecs(raw) {
+  if (typeof raw !== 'string') return [];
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((s) => s && typeof s === 'object' && (s.name || s.value))
+      .map((s) => ({ name: String(s.name || '').slice(0, 120), value: String(s.value || '').slice(0, 300) }));
+  } catch (e) { return []; }
+}
+function parseAdvantages(raw) {
+  if (typeof raw !== 'string') return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.map((a) => String(a || '').slice(0, 200)).filter(Boolean) : [];
+  } catch (e) { return []; }
+}
+function cleanAvailability(v) {
+  return ['in_stock', 'out', 'preorder'].includes(v) ? v : 'in_stock';
+}
+
 app.post('/api/products', requireAuth, productUpload, async (req, res) => {
   const data = readData();
   const files = req.files || {};
   const images = await storeFiles(files.images || []);
   const pdf = files.pdf && files.pdf[0] ? await storage.putUpload(files.pdf[0]) : '';
+  const name = (req.body.name || 'Без названия').trim();
 
   const product = {
     id: crypto.randomUUID(),
-    name: (req.body.name || 'Без названия').trim(),
+    name,
+    slug: uniqueProdSlug(req.body.slug, name, null),
     description: req.body.description || '',
     price: req.body.price || '',
     currency: req.body.currency || '₽',
     categoryId: req.body.categoryId || '',
     subcategoryId: req.body.subcategoryId || '',
+    brand: (req.body.brand || '').trim(),
+    sku: (req.body.sku || '').trim(),
+    availability: cleanAvailability(req.body.availability),
+    specs: parseSpecs(req.body.specs),
+    advantages: parseAdvantages(req.body.advantages),
+    seoTitle: (req.body.seoTitle || '').trim(),
+    seoDescription: (req.body.seoDescription || '').trim(),
+    published: req.body.published === false || req.body.published === 'false' ? false : true,
     badge: cleanBadge(req.body.badge),
     images: images.slice(0, 5),
     relatedIds: parseRelated(req.body.relatedIds),
     linkedInstructionId: (req.body.linkedInstructionId || '').trim(),
     orderUrl: (req.body.orderUrl || '').trim(),
-    instruction: {
-      videoUrl: req.body.videoUrl || '',
-      text: req.body.instructionText || '',
-      pdf: pdf
-    },
-    createdAt: Date.now()
+    instruction: { videoUrl: req.body.videoUrl || '', text: req.body.instructionText || '', pdf: pdf },
+    createdAt: Date.now(),
+    updatedAt: Date.now()
   };
   data.products.unshift(product);
   writeData(data);
@@ -878,17 +1045,27 @@ app.put('/api/products/:id', requireAuth, productUpload, async (req, res) => {
   }
 
   product.name = (req.body.name ?? product.name).trim();
+  if (typeof req.body.slug === 'string' && req.body.slug.trim()) product.slug = uniqueProdSlug(req.body.slug, product.name, product.id);
   product.description = req.body.description ?? product.description;
   product.price = req.body.price ?? product.price;
   product.currency = req.body.currency ?? product.currency;
   if (req.body.categoryId !== undefined) product.categoryId = req.body.categoryId || '';
   if (req.body.subcategoryId !== undefined) product.subcategoryId = req.body.subcategoryId || '';
+  if (req.body.brand !== undefined) product.brand = (req.body.brand || '').trim();
+  if (req.body.sku !== undefined) product.sku = (req.body.sku || '').trim();
+  if (req.body.availability !== undefined) product.availability = cleanAvailability(req.body.availability);
+  if (req.body.specs !== undefined) product.specs = parseSpecs(req.body.specs);
+  if (req.body.advantages !== undefined) product.advantages = parseAdvantages(req.body.advantages);
+  if (req.body.seoTitle !== undefined) product.seoTitle = (req.body.seoTitle || '').trim();
+  if (req.body.seoDescription !== undefined) product.seoDescription = (req.body.seoDescription || '').trim();
+  if (req.body.published !== undefined) product.published = !(req.body.published === false || req.body.published === 'false');
   if (req.body.badge !== undefined) product.badge = cleanBadge(req.body.badge);
   if (req.body.orderUrl !== undefined) product.orderUrl = (req.body.orderUrl || '').trim();
   if (req.body.linkedInstructionId !== undefined) product.linkedInstructionId = (req.body.linkedInstructionId || '').trim();
   product.instruction.videoUrl = req.body.videoUrl ?? product.instruction.videoUrl;
   if (req.body.instructionText !== undefined) product.instruction.text = req.body.instructionText;
   if (typeof req.body.relatedIds === 'string') product.relatedIds = parseRelated(req.body.relatedIds);
+  product.updatedAt = Date.now();
 
   writeData(data);
   res.json(product);
@@ -1015,6 +1192,39 @@ app.delete('/api/backups/:name', requireAuth, async (req, res) => {
 });
 
 app.get(ADMIN_PATH, (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(seo.renderRobots(seo.baseUrl(req)));
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml').send(seo.renderSitemap(readData(), seo.baseUrl(req)));
+});
+
+app.get(['/catalog', '/catalog/'], (req, res) => {
+  res.type('html').send(seo.renderCatalogIndex(readData(), seo.baseUrl(req)));
+});
+
+app.get('/catalog/:slug', (req, res) => {
+  const data = readData();
+  const base = seo.baseUrl(req);
+  const cat = (data.productCategories || []).find((c) => c.slug === req.params.slug && c.published !== false);
+  if (!cat) return res.status(404).type('html').send(seo.render404(data, base, 'Категория не найдена или снята с публикации.'));
+  res.type('html').send(seo.renderCategoryPage(data, cat, base));
+});
+
+app.get('/product/:slug', (req, res) => {
+  const data = readData();
+  const base = seo.baseUrl(req);
+  const product = (data.products || []).find((p) => p.slug === req.params.slug && p.published !== false);
+  if (!product) return res.status(404).type('html').send(seo.render404(data, base, 'Товар не найден или снят с публикации.'));
+  res.type('html').send(seo.renderProductPage(data, product, base));
+});
+
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Не найдено' });
+  res.status(404).type('html').send(seo.render404(readData(), seo.baseUrl(req)));
+});
 
 app.use((err, req, res, next) => {
   if (err) return res.status(400).json({ error: err.message || 'Ошибка загрузки' });

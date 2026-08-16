@@ -5,7 +5,12 @@
     "theme": "light",
     "orderUrl": "",
     "sliderRatio": "1600/250",
-    "colors": { "grad1": "#2563eb", "grad2": "#0ea5c4", "sub1": "#f59e0b", "sub2": "#f97316" }
+    "colors": {
+      "grad1": "#2563eb",
+      "grad2": "#0ea5c4",
+      "sub1": "#f59e0b",
+      "sub2": "#f97316"
+    }
   },
   "header": {
     "image": "",
@@ -14,34 +19,127 @@
     "title": "SPACEXTEN",
     "subtitle": "Техника, запчасти и сервис для тех, кто ценит надёжность."
   },
-  "banners": { "desktop": [], "mobile": [] },
+  "banners": {
+    "desktop": [],
+    "mobile": []
+  },
   "about": {
     "title": "О компании",
     "text": "SPACEXTEN — поставщик профессионального оборудования и комплектующих. Мы подбираем технику под задачу, обеспечиваем оригинальными запчастями и сопровождаем подробными инструкциями по эксплуатации.",
     "features": [
-      { "title": "Оригинальные запчасти", "text": "Полная совместимость с вашей техникой." },
-      { "title": "Гарантия и сервис", "text": "Поддержка на всём сроке эксплуатации." },
-      { "title": "Видео и PDF инструкции", "text": "Понятные материалы к каждому товару." }
+      {
+        "title": "Оригинальные запчасти",
+        "text": "Полная совместимость с вашей техникой."
+      },
+      {
+        "title": "Гарантия и сервис",
+        "text": "Поддержка на всём сроке эксплуатации."
+      },
+      {
+        "title": "Видео и PDF инструкции",
+        "text": "Понятные материалы к каждому товару."
+      }
     ]
   },
-  "productCategories": [],
-  "products": [],
+  "productCategories": [
+    {
+      "id": "2a9c592a-8de8-478e-8a27-06f2271086ff",
+      "name": "Автономные дизельные отопители",
+      "subcategories": [],
+      "published": true,
+      "description": "Отопители для авто и дома.",
+      "image": "",
+      "seoTitle": "",
+      "seoDescription": "",
+      "slug": "avtonomnye-dizelnye-otopiteli"
+    }
+  ],
+  "products": [
+    {
+      "name": "Отопитель SPACEXTEN 5 кВт 12 В",
+      "categoryId": "2a9c592a-8de8-478e-8a27-06f2271086ff",
+      "brand": "SPACEXTEN",
+      "sku": "SP-5",
+      "price": "15000",
+      "availability": "in_stock",
+      "published": true,
+      "specs": [
+        {
+          "name": "Мощность",
+          "value": "5 кВт"
+        }
+      ],
+      "advantages": [
+        "Тихий"
+      ],
+      "images": [],
+      "description": "Мощный отопитель.",
+      "id": "1ebb1fb4-dc1d-4064-8556-3957afd7a7ad",
+      "currency": "₽",
+      "subcategoryId": "",
+      "badge": "",
+      "relatedIds": [],
+      "linkedInstructionId": "",
+      "orderUrl": "",
+      "instruction": {
+        "videoUrl": "",
+        "text": "",
+        "pdf": ""
+      },
+      "slug": "otopitel-spacexten-5-kvt-12-v",
+      "seoTitle": "",
+      "seoDescription": "",
+      "createdAt": 1786899839367,
+      "updatedAt": 1786899839367
+    }
+  ],
   "instructionCategories": [],
   "leads": [],
   "orders": [],
   "socials": [],
   "layout": [
-    { "type": "section", "key": "about" },
-    { "type": "section", "key": "catalog" },
-    { "type": "section", "key": "wholesale" },
-    { "type": "section", "key": "instructions" },
-    { "type": "section", "key": "contacts" }
+    {
+      "type": "section",
+      "key": "about"
+    },
+    {
+      "type": "section",
+      "key": "catalog"
+    },
+    {
+      "type": "section",
+      "key": "wholesale"
+    },
+    {
+      "type": "section",
+      "key": "instructions"
+    },
+    {
+      "type": "section",
+      "key": "contacts"
+    }
   ],
   "sectionText": {
-    "catalog": { "eyebrow": "Продукция", "title": "Каталог", "lead": "Выберите категорию и добавляйте товары в корзину. Нажмите на карточку, чтобы увидеть фото, цену, запчасти и инструкцию." },
-    "wholesale": { "eyebrow": "Оптом", "title": "Нужен оптовый прайс-лист?", "lead": "Оставьте номер телефона — менеджер свяжется с вами, ответит на вопросы и пришлёт актуальные оптовые цены." },
-    "instructions": { "eyebrow": "Поддержка", "title": "Инструкции", "lead": "Выберите категорию, затем нужную инструкцию — откроется видео, текст или PDF." },
-    "contacts": { "eyebrow": "Связь", "title": "Контакты", "lead": "" }
+    "catalog": {
+      "eyebrow": "Продукция",
+      "title": "Каталог",
+      "lead": "Выберите категорию и добавляйте товары в корзину. Нажмите на карточку, чтобы увидеть фото, цену, запчасти и инструкцию."
+    },
+    "wholesale": {
+      "eyebrow": "Оптом",
+      "title": "Нужен оптовый прайс-лист?",
+      "lead": "Оставьте номер телефона — менеджер свяжется с вами, ответит на вопросы и пришлёт актуальные оптовые цены."
+    },
+    "instructions": {
+      "eyebrow": "Поддержка",
+      "title": "Инструкции",
+      "lead": "Выберите категорию, затем нужную инструкцию — откроется видео, текст или PDF."
+    },
+    "contacts": {
+      "eyebrow": "Связь",
+      "title": "Контакты",
+      "lead": ""
+    }
   },
   "contacts": {
     "address": "г. Москва, ул. Примерная, д. 1",
@@ -52,8 +150,25 @@
     "hours": "Пн–Пт: 9:00–19:00",
     "note": "Свяжитесь с нами любым удобным способом — поможем подобрать оборудование."
   },
-  "analytics": { "visits": 0, "unique": 0, "cartOpens": 0 },
-  "security": { "failedAttempts": 0, "lockUntil": 0 },
-  "loginLog": [],
-  "backupMeta": { "last": 0 }
+  "analytics": {
+    "visits": 0,
+    "unique": 0,
+    "cartOpens": 0
+  },
+  "security": {
+    "failedAttempts": 0,
+    "lockUntil": 0
+  },
+  "loginLog": [
+    {
+      "time": 1786899841637,
+      "ip": "127.0.0.1",
+      "login": "SP2026",
+      "success": true,
+      "reason": "ok"
+    }
+  ],
+  "backupMeta": {
+    "last": 1786899899601
+  }
 }

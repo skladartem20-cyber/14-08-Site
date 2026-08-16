@@ -400,23 +400,24 @@
     const cats = DATA.productCategories || [];
     $('#panel').innerHTML = `
       <div class="panel-head">
-        <div><h2>Каталог</h2><p>Сначала создайте категории, затем добавляйте в них товары.</p></div>
+        <div><h2>Каталог</h2><p>Шаг 1 — создайте категории и подкатегории. Шаг 2 — добавляйте в них товары.</p></div>
         <button class="btn btn--primary" id="add-product">+ Добавить товар</button>
       </div>
 
       <div class="card-block">
-        <h3>Категории товаров</h3>
-        <p class="hint-text">На сайте посетитель выбирает категорию и видит товары именно из неё.</p>
-        <div class="cat-manage" id="cat-manage"></div>
-        <div class="field-row" style="grid-template-columns:1fr auto;align-items:end;margin-top:6px">
-          <div><label class="field-label">Новая категория</label><input class="input" id="new-prod-cat" placeholder="Например: Мойки высокого давления" style="margin-bottom:0"/></div>
-          <button class="btn btn--primary" id="add-prod-cat">Добавить</button>
+        <div class="block-head"><h3>1. Категории и подкатегории</h3><span class="block-head__badge">${cats.length} кат.</span></div>
+        <p class="hint-text">Категория = отдельная страница каталога (/catalog/…). Подкатегории — это фильтры внутри категории (бренд, мощность, напряжение и т.д.), отдельных страниц у них нет.</p>
+        <div class="add-inline">
+          <input class="input" id="new-prod-cat" placeholder="Название новой категории — напр. «Лодочные моторы»" />
+          <button class="btn btn--primary" id="add-prod-cat">+ Категория</button>
         </div>
+        <div class="cat-manage" id="cat-manage"></div>
       </div>
 
       <div class="card-block">
-        <h3>Товары</h3>
-        ${products.length ? '<div class="admin-products" id="prod-list"></div>' : '<p class="empty-list">Товаров пока нет. Нажмите «Добавить товар».</p>'}
+        <div class="block-head"><h3>2. Товары</h3><span class="block-head__badge">${products.length} тов.</span></div>
+        <p class="hint-text">У каждого товара своя страница /product/…, которая создаётся автоматически.</p>
+        ${products.length ? '<div class="admin-products" id="prod-list"></div>' : '<p class="empty-list">Товаров пока нет. Нажмите «Добавить товар» вверху справа.</p>'}
       </div>`;
 
     const cm = $('#cat-manage');
@@ -428,33 +429,84 @@
       row.className = 'cat-block';
       row.innerHTML = `
         <div class="cat-row">
-          <input class="input cat-name" value="${esc(cat.name)}" data-id="${cat.id}" />
+          <span class="cat-row__title">🗂 ${esc(cat.name) || 'Категория'}</span>
           <span class="cat-row__count">${count} тов.</span>
-          <button class="btn btn--outline btn--sm save-cat" data-id="${cat.id}">Сохранить</button>
-          <button class="btn btn--danger btn--sm del-cat" data-id="${cat.id}">Удалить</button>
+          ${cat.published === false ? '<span class="prod-badge prod-badge--draft">скрыта</span>' : ''}
+          <button class="btn btn--danger btn--sm del-cat" data-id="${cat.id}" style="margin-left:auto">Удалить</button>
         </div>
-        <div class="subcat-wrap">
-          <div class="subcat-label">Подкатегории:</div>
+        <div class="cat-sect">
+          <div class="cat-sect__label">Основное</div>
+          <div class="field-row">
+            <div><label class="field-label">Название</label>
+            <input class="input cat-name" value="${esc(cat.name)}" data-id="${cat.id}" placeholder="Название категории" /></div>
+            <div><label class="field-label">URL (slug) — /catalog/<b>${esc(cat.slug || '')}</b>/</label>
+            <input class="input cat-slug" value="${esc(cat.slug || '')}" data-id="${cat.id}" placeholder="напр. lodochnye-motory" /></div>
+          </div>
+          <label class="switch"><input type="checkbox" class="cat-published" data-id="${cat.id}" ${cat.published !== false ? 'checked' : ''}/> <span>Категория видна на сайте и в sitemap</span></label>
+        </div>
+        <div class="cat-sect">
+          <div class="cat-sect__label">Описание и SEO</div>
+          <label class="field-label">Описание / SEO-текст (показывается на странице категории)</label>
+          <textarea class="textarea cat-desc" data-id="${cat.id}" placeholder="Короткое описание категории для покупателей и поисковиков">${esc(cat.description || '')}</textarea>
+          <div class="field-row">
+            <div><label class="field-label">SEO title (необязательно)</label>
+            <input class="input cat-seotitle" data-id="${cat.id}" value="${esc(cat.seoTitle || '')}" placeholder="Если пусто — сформируется автоматически" /></div>
+            <div><label class="field-label">SEO description (необязательно)</label>
+            <input class="input cat-seodesc" data-id="${cat.id}" value="${esc(cat.seoDescription || '')}" placeholder="Если пусто — сформируется автоматически" /></div>
+          </div>
+        </div>
+        <div class="cat-sect">
+          <div class="cat-sect__label">Фото категории</div>
+          <div class="cat-img-row">
+            <div class="cat-img-prev" style="${cat.image ? `background-image:url('${esc(cat.image)}')` : ''}">${cat.image ? '' : 'нет фото'}</div>
+            <label class="btn btn--outline btn--sm" style="cursor:pointer"><input type="file" class="cat-img-input" data-id="${cat.id}" accept="image/*" hidden />Загрузить фото</label>
+            ${cat.image ? `<button class="btn btn--outline btn--sm cat-img-del" data-id="${cat.id}">Убрать фото</button>` : ''}
+          </div>
+        </div>
+        <div class="cat-sect">
+          <div class="cat-sect__label">Подкатегории (фильтры на странице категории)</div>
           <div class="subcat-list">
             ${subs.length ? subs.map((s) => `
               <span class="subcat-tag">
                 <input class="subcat-name" value="${esc(s.name)}" data-cat="${cat.id}" data-sub="${s.id}" />
                 <button class="subcat-save" data-cat="${cat.id}" data-sub="${s.id}" title="Сохранить">✓</button>
                 <button class="subcat-del" data-cat="${cat.id}" data-sub="${s.id}" title="Удалить">×</button>
-              </span>`).join('') : '<span class="hint-text" style="margin:0">пока нет</span>'}
+              </span>`).join('') : '<span class="hint-text" style="margin:0">пока нет — добавьте бренды/мощность/напряжение</span>'}
           </div>
           <div class="subcat-add">
-            <input class="input new-subcat" data-cat="${cat.id}" placeholder="Новая подкатегория (напр. по марке)" />
+            <input class="input new-subcat" data-cat="${cat.id}" placeholder="Новая подкатегория (напр. SPACEXTEN, 5 кВт, 12 В)" />
             <button class="btn btn--outline btn--sm add-subcat" data-cat="${cat.id}">+ Подкатегория</button>
           </div>
+        </div>
+        <div class="cat-foot">
+          <a class="cat-foot__link" href="/catalog/${esc(cat.slug || '')}/" target="_blank">Открыть страницу категории ↗</a>
+          <button class="btn btn--primary save-cat" data-id="${cat.id}">Сохранить категорию</button>
         </div>`;
       cm.appendChild(row);
     });
     $$('#cat-manage .save-cat').forEach((b) => b.addEventListener('click', async () => {
-      const input = $(`#cat-manage .cat-name[data-id="${b.dataset.id}"]`);
-      const name = input.value.trim();
+      const id = b.dataset.id;
+      const name = $(`#cat-manage .cat-name[data-id="${id}"]`).value.trim();
       if (!name) return toast('Введите название', 'error');
-      try { await api('PUT', '/api/product-categories/' + b.dataset.id, { name }); toast('Категория сохранена'); await reloadAndRender(); }
+      const body = {
+        name,
+        slug: $(`#cat-manage .cat-slug[data-id="${id}"]`).value.trim(),
+        description: $(`#cat-manage .cat-desc[data-id="${id}"]`).value,
+        seoTitle: $(`#cat-manage .cat-seotitle[data-id="${id}"]`).value,
+        seoDescription: $(`#cat-manage .cat-seodesc[data-id="${id}"]`).value,
+        published: $(`#cat-manage .cat-published[data-id="${id}"]`).checked
+      };
+      try { await api('PUT', '/api/product-categories/' + id, body); toast('Категория сохранена'); await reloadAndRender(); }
+      catch (err) { toast(err.message, 'error'); }
+    }));
+    $$('#cat-manage .cat-img-input').forEach((inp) => inp.addEventListener('change', async (e) => {
+      const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+      const fd = new FormData(); fd.append('image', file);
+      try { await api('POST', `/api/product-categories/${inp.dataset.id}/image`, fd, true); toast('Фото загружено'); await reloadAndRender(); }
+      catch (err) { toast(err.message, 'error'); }
+    }));
+    $$('#cat-manage .cat-img-del').forEach((b) => b.addEventListener('click', async () => {
+      try { await api('DELETE', `/api/product-categories/${b.dataset.id}/image`); toast('Фото убрано'); await reloadAndRender(); }
       catch (err) { toast(err.message, 'error'); }
     }));
     $$('#cat-manage .del-cat').forEach((b) => b.addEventListener('click', async () => {
@@ -499,9 +551,9 @@
         <div class="admin-product">
           <div class="admin-product__img" style="${p.images && p.images[0] ? `background-image:url('${p.images[0]}')` : ''}"></div>
           <div>
-            <div class="admin-product__name">${esc(p.name)} ${plaque}</div>
+            <div class="admin-product__name">${esc(p.name)} ${plaque} ${p.published === false ? '<span class="prod-badge prod-badge--draft">черновик</span>' : ''}</div>
             ${p.price ? `<div class="admin-product__price">${esc(p.price)} ${esc(p.currency || '₽')}</div>` : ''}
-            <div class="admin-product__meta">${cn ? '🗂 ' + esc(cn) + ' · ' : '<span style="color:var(--danger)">без категории</span> · '}${(p.images || []).length} фото · ${relCount} запч. · ${hasInstr ? 'инструкция есть' : 'без инструкции'}</div>
+            <div class="admin-product__meta">${cn ? '🗂 ' + esc(cn) + ' · ' : '<span style="color:var(--danger)">без категории</span> · '}${(p.images || []).length} фото · ${relCount} запч. · <a href="/product/${esc(p.slug || '')}/" target="_blank" style="color:var(--primary-2)">/product/${esc(p.slug || '')}/</a></div>
           </div>
           <div class="admin-product__actions">
             <button class="btn btn--outline btn--sm edit-prod" data-id="${p.id}">Изменить</button>
@@ -550,7 +602,9 @@
       pdfFile: null,
       currentPdf: product && product.instruction ? product.instruction.pdf : '',
       removePdf: false,
-      related: new Set(product ? (product.relatedIds || []) : [])
+      related: new Set(product ? (product.relatedIds || []) : []),
+      specs: product && Array.isArray(product.specs) ? product.specs.map((s) => ({ name: s.name, value: s.value })) : [],
+      advantages: product && Array.isArray(product.advantages) ? product.advantages.slice() : []
     };
 
     const others = products.filter((p) => p.id !== id);
@@ -566,8 +620,22 @@
       <div class="form-modal__dialog">
         <h2>${id ? 'Редактирование товара' : 'Новый товар'}</h2>
 
+        <div class="form-sect-title">Основное</div>
         <label class="field-label">Название</label>
-        <input class="input" id="f-name" value="${product ? esc(product.name) : ''}" placeholder="Например: Мойка высокого давления X200" />
+        <input class="input" id="f-name" value="${product ? esc(product.name) : ''}" placeholder="Например: Автономный дизельный отопитель SPACEXTEN 5 кВт 12 В" />
+
+        <div class="field-row">
+          <div><label class="field-label">URL (slug) — /product/<b>${product ? esc(product.slug || '') : 'создаётся из названия'}</b>/</label>
+          <input class="input" id="f-slug" value="${product ? esc(product.slug || '') : ''}" placeholder="Оставьте пустым — создастся автоматически" /></div>
+          <div><label class="field-label">Публикация</label>
+          <label class="switch"><input type="checkbox" id="f-published" ${!product || product.published !== false ? 'checked' : ''}/> <span>Товар виден на сайте и в sitemap</span></label></div>
+        </div>
+
+        <div class="form-sect-title">Бренд и классификация</div>
+        <div class="field-row">
+          <div><label class="field-label">Бренд</label><input class="input" id="f-brand" value="${product ? esc(product.brand || '') : ''}" placeholder="SPACEXTEN / HANGKAI / ALPICOOL..." /></div>
+          <div><label class="field-label">Артикул (SKU)</label><input class="input" id="f-sku" value="${product ? esc(product.sku || '') : ''}" placeholder="Необязательно" /></div>
+        </div>
 
         <div class="field-row">
           <div>
@@ -583,7 +651,16 @@
           </div>
         </div>
 
+        <div class="form-sect-title">Цена и наличие</div>
         <div class="field-row">
+          <div>
+            <label class="field-label">Наличие</label>
+            <select class="select" id="f-availability">
+              <option value="in_stock" ${!product || product.availability === 'in_stock' ? 'selected' : ''}>В наличии</option>
+              <option value="preorder" ${product && product.availability === 'preorder' ? 'selected' : ''}>Под заказ</option>
+              <option value="out" ${product && product.availability === 'out' ? 'selected' : ''}>Нет в наличии</option>
+            </select>
+          </div>
           <div>
             <label class="field-label">Плашка</label>
             <select class="select" id="f-badge">
@@ -592,25 +669,43 @@
               <option value="sale" ${badge === 'sale' ? 'selected' : ''}>% Распродажа</option>
             </select>
           </div>
-          <div><label class="field-label">Валюта</label><input class="input" id="f-currency" value="${product ? esc(product.currency || '₽') : '₽'}" /></div>
         </div>
 
         <div class="field-row">
-          <div><label class="field-label">Цена</label><input class="input" id="f-price" value="${product ? esc(product.price) : ''}" placeholder="15000" /></div>
-          <div></div>
+          <div><label class="field-label">Цена</label><input class="input" id="f-price" value="${product ? esc(product.price) : ''}" placeholder="15000 (пусто = по запросу)" /></div>
+          <div><label class="field-label">Валюта</label><input class="input" id="f-currency" value="${product ? esc(product.currency || '₽') : '₽'}" /></div>
         </div>
 
         <label class="field-label">Описание</label>
-        <textarea class="textarea" id="f-desc" placeholder="Характеристики, комплектация...">${product ? esc(product.description) : ''}</textarea>
+        <textarea class="textarea" id="f-desc" placeholder="Описание товара, комплектация, применение...">${product ? esc(product.description) : ''}</textarea>
 
+        <div class="form-sect-title">Характеристики и преимущества</div>
+        <label class="field-label">Характеристики</label>
+        <div class="kv-list" id="f-specs"></div>
+        <button type="button" class="btn btn--outline btn--sm" id="f-spec-add">+ Характеристика</button>
+
+        <label class="field-label" style="margin-top:14px">Преимущества</label>
+        <div class="adv-edit" id="f-advantages"></div>
+        <button type="button" class="btn btn--outline btn--sm" id="f-adv-add">+ Преимущество</button>
+
+        <div class="form-sect-title">Фотографии</div>
         <label class="field-label">Фотографии (до 5)</label>
-        <div class="size-hint">⌕ Рекомендуемый размер фото: <strong>1000 × 1000 px</strong> (квадрат), одинаковый формат для всех фото, JPG/PNG/WEBP</div>
+        <div class="size-hint">⌕ Рекомендуемый размер фото: <strong>1000 × 1000 px</strong> (квадрат), JPG/PNG/WEBP</div>
         <div class="thumbs" id="f-thumbs"></div>
         <label class="uploader"><input type="file" id="f-images" accept="image/*" multiple />Нажмите, чтобы <strong>добавить фото</strong></label>
 
+        <div class="card-block" style="padding:18px;background:rgba(6,9,17,.4);margin-top:14px">
+          <h3 style="font-size:1.02rem">SEO (необязательно)</h3>
+          <p class="hint-text">Если оставить пустым — заголовок и описание сформируются автоматически из названия и категории.</p>
+          <label class="field-label">SEO title</label>
+          <input class="input" id="f-seotitle" value="${product ? esc(product.seoTitle || '') : ''}" placeholder="Заголовок страницы в поиске" />
+          <label class="field-label">SEO description</label>
+          <textarea class="textarea" id="f-seodesc" placeholder="Описание страницы в поиске (до ~160 символов)">${product ? esc(product.seoDescription || '') : ''}</textarea>
+        </div>
+
         <label class="field-label">Ссылка «Заказать товар» (мессенджер)</label>
         <input class="input" id="f-order" value="${esc(orderUrl)}" placeholder="https://t.me/ваш_аккаунт или https://wa.me/79990000000" />
-        <p class="hint-text">Если оставить пустым — используется общая ссылка из «Настроек». Кнопка откроет её в новой вкладке.</p>
+        <p class="hint-text">Если оставить пустым — используется общая ссылка из «Настроек».</p>
 
         <div class="card-block" style="padding:18px;background:rgba(6,9,17,.4)">
           <h3 style="font-size:1.02rem">Инструкция к товару</h3>
@@ -650,6 +745,10 @@
 
     renderThumbs();
     renderPdfState();
+    renderSpecs();
+    renderAdvantages();
+    $('#f-spec-add').addEventListener('click', () => { formState.specs.push({ name: '', value: '' }); renderSpecs(); });
+    $('#f-adv-add').addEventListener('click', () => { formState.advantages.push(''); renderAdvantages(); });
 
     $('#f-images').addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
@@ -690,6 +789,32 @@
     };
     fillSubcategories(product ? product.subcategoryId : '');
     $('#f-category').addEventListener('change', () => fillSubcategories(''));
+  }
+
+  function renderSpecs() {
+    const el = $('#f-specs');
+    if (!el) return;
+    el.innerHTML = formState.specs.length ? formState.specs.map((s, i) => `
+      <div class="kv-row">
+        <input class="input kv-name" data-i="${i}" value="${esc(s.name)}" placeholder="Параметр (напр. Мощность)" />
+        <input class="input kv-value" data-i="${i}" value="${esc(s.value)}" placeholder="Значение (напр. 5 кВт)" />
+        <button type="button" class="kv-del" data-i="${i}" title="Удалить">×</button>
+      </div>`).join('') : '<p class="hint-text">Характеристики не добавлены.</p>';
+    $$('#f-specs .kv-name').forEach((inp) => inp.addEventListener('input', () => { formState.specs[Number(inp.dataset.i)].name = inp.value; }));
+    $$('#f-specs .kv-value').forEach((inp) => inp.addEventListener('input', () => { formState.specs[Number(inp.dataset.i)].value = inp.value; }));
+    $$('#f-specs .kv-del').forEach((b) => b.addEventListener('click', () => { formState.specs.splice(Number(b.dataset.i), 1); renderSpecs(); }));
+  }
+
+  function renderAdvantages() {
+    const el = $('#f-advantages');
+    if (!el) return;
+    el.innerHTML = formState.advantages.length ? formState.advantages.map((a, i) => `
+      <div class="adv-row">
+        <input class="input adv-input" data-i="${i}" value="${esc(a)}" placeholder="Например: Экономичный расход топлива" />
+        <button type="button" class="kv-del" data-i="${i}" title="Удалить">×</button>
+      </div>`).join('') : '<p class="hint-text">Преимущества не добавлены.</p>';
+    $$('#f-advantages .adv-input').forEach((inp) => inp.addEventListener('input', () => { formState.advantages[Number(inp.dataset.i)] = inp.value; }));
+    $$('#f-advantages .kv-del').forEach((b) => b.addEventListener('click', () => { formState.advantages.splice(Number(b.dataset.i), 1); renderAdvantages(); }));
   }
 
   function renderThumbs() {
@@ -735,12 +860,21 @@
 
     const fd = new FormData();
     fd.append('name', name);
+    fd.append('slug', $('#f-slug').value.trim());
+    fd.append('brand', $('#f-brand').value.trim());
+    fd.append('sku', $('#f-sku').value.trim());
+    fd.append('availability', $('#f-availability').value);
+    fd.append('published', $('#f-published').checked ? 'true' : 'false');
     fd.append('price', $('#f-price').value.trim());
     fd.append('currency', $('#f-currency').value.trim() || '₽');
     fd.append('categoryId', $('#f-category').value);
     fd.append('subcategoryId', $('#f-subcategory') && !$('#f-subcategory').disabled ? $('#f-subcategory').value : '');
     fd.append('badge', $('#f-badge').value);
     fd.append('description', $('#f-desc').value);
+    fd.append('seoTitle', $('#f-seotitle').value.trim());
+    fd.append('seoDescription', $('#f-seodesc').value.trim());
+    fd.append('specs', JSON.stringify(formState.specs.filter((s) => s.name || s.value)));
+    fd.append('advantages', JSON.stringify(formState.advantages.filter((a) => a && a.trim())));
     fd.append('orderUrl', $('#f-order').value.trim());
     fd.append('videoUrl', $('#f-video').value.trim());
     fd.append('instructionText', $('#f-instr-text').value);
@@ -1272,6 +1406,21 @@
     $('#panel').innerHTML = `
       <div class="panel-head"><div><h2>Настройки</h2><p>Тема, цвета градиентов, ссылка заказа и резервные копии.</p></div></div>
 
+      <div class="card-block" id="telegram-block">
+        <h3>📨 Уведомления в Telegram</h3>
+        <p class="hint-text">Бот присылает в Telegram каждый новый заказ и заявку на опт со всеми данными покупателя. Токен бота, chat ID и прокси задаются в переменных окружения Timeweb (в целях безопасности они не хранятся и не показываются в панели).</p>
+        <div id="tg-status" class="tg-status">Проверка статуса…</div>
+        <div class="tg-toggles" id="tg-toggles" hidden>
+          <label class="switch"><input type="checkbox" id="tg-orders" /> <span>Уведомлять о новых заказах</span></label>
+          <label class="switch"><input type="checkbox" id="tg-leads" /> <span>Уведомлять о новых заявках (опт)</span></label>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn--primary btn--sm" id="tg-save" hidden>Сохранить</button>
+          <button class="btn btn--outline btn--sm" id="tg-test">Отправить тестовое сообщение</button>
+        </div>
+        <p class="tg-test-result" id="tg-test-result"></p>
+      </div>
+
       <div class="card-block">
         <h3>Тема сайта</h3>
         <p class="hint-text">Светлая — основная. Переключение применяется ко всему сайту сразу.</p>
@@ -1357,6 +1506,40 @@
     $('#save-order').addEventListener('click', async () => {
       try { const res = await api('PUT', '/api/site', { orderUrl: $('#s-order').value.trim() }); DATA.site = res; toast('Ссылка сохранена'); }
       catch (err) { toast(err.message, 'error'); }
+    });
+
+    (async () => {
+      let st;
+      try { st = await api('GET', '/api/telegram/status'); } catch (e) { $('#tg-status').innerHTML = '<span class="tg-badge tg-badge--off">Не удалось получить статус</span>'; return; }
+      const statusEl = $('#tg-status');
+      if (st.configured) {
+        statusEl.innerHTML = '<span class="tg-badge tg-badge--on">✓ Бот подключён</span>'
+          + (st.proxy ? `<span class="tg-badge tg-badge--info">через прокси (${esc(st.proxyType || 'http')})</span>` : '<span class="tg-badge tg-badge--info">прямое подключение</span>');
+      } else {
+        const miss = [];
+        if (!st.hasToken) miss.push('TELEGRAM_BOT_TOKEN');
+        if (!st.hasChatId) miss.push('TELEGRAM_CHAT_ID');
+        statusEl.innerHTML = '<span class="tg-badge tg-badge--off">Не настроен</span> <span class="hint-text">Задайте в Timeweb: ' + esc(miss.join(', ')) + '</span>';
+      }
+      $('#tg-toggles').hidden = false;
+      $('#tg-save').hidden = false;
+      $('#tg-orders').checked = st.notifyOrders !== false;
+      $('#tg-leads').checked = st.notifyLeads !== false;
+      $('#tg-save').addEventListener('click', async () => {
+        try { await api('PUT', '/api/telegram', { notifyOrders: $('#tg-orders').checked, notifyLeads: $('#tg-leads').checked }); toast('Настройки уведомлений сохранены'); }
+        catch (err) { toast(err.message, 'error'); }
+      });
+    })();
+
+    $('#tg-test').addEventListener('click', async () => {
+      const btn = $('#tg-test'), out = $('#tg-test-result');
+      btn.disabled = true; out.textContent = 'Отправляем…'; out.className = 'tg-test-result';
+      try {
+        await api('POST', '/api/telegram/test');
+        out.textContent = '✓ Сообщение отправлено. Проверьте Telegram.'; out.className = 'tg-test-result tg-test-result--ok';
+      } catch (err) {
+        out.textContent = '✕ ' + err.message; out.className = 'tg-test-result tg-test-result--err';
+      } finally { btn.disabled = false; }
     });
 
     $('#do-export').addEventListener('click', () => {
