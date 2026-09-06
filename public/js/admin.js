@@ -693,6 +693,8 @@
         <div class="size-hint">⌕ Рекомендуемый размер фото: <strong>1000 × 1000 px</strong> (квадрат), JPG/PNG/WEBP</div>
         <div class="thumbs" id="f-thumbs"></div>
         <label class="uploader"><input type="file" id="f-images" accept="image/*" multiple />Нажмите, чтобы <strong>добавить фото</strong></label>
+        <button type="button" class="btn btn--outline btn--sm" id="f-paste" style="margin-top:8px">📋 Вставить из буфера обмена</button>
+        <p class="hint-text">Скопируйте картинку (например, «Копировать изображение» или скриншот) и нажмите кнопку, либо просто нажмите Ctrl+V.</p>
 
         <div class="card-block" style="padding:18px;background:rgba(6,9,17,.4);margin-top:14px">
           <h3 style="font-size:1.02rem">SEO (необязательно)</h3>
@@ -723,9 +725,10 @@
 
         <label class="field-label">Дополнительные товары / запчасти</label>
         <p class="hint-text">Отметьте товары, которые предложить покупателю вместе с этим.</p>
+        ${others.length > 6 ? '<input class="input" id="f-rel-search" placeholder="🔎 Поиск товара для привязки..." style="margin-bottom:10px" />' : ''}
         <div class="rel-grid" id="f-related">
           ${others.length ? others.map((o) => `
-            <label class="rel-option ${formState.related.has(o.id) ? 'checked' : ''}">
+            <label class="rel-option ${formState.related.has(o.id) ? 'checked' : ''}" data-name="${esc((o.name || '').toLowerCase())}">
               <input type="checkbox" value="${o.id}" ${formState.related.has(o.id) ? 'checked' : ''}/>
               <span>${esc(o.name)}</span>
             </label>`).join('') : '<p class="hint-text" style="grid-column:1/-1">Сначала добавьте другие товары, чтобы привязать их.</p>'}
@@ -758,6 +761,46 @@
       formState.newImages.push(...files.slice(0, allowed));
       e.target.value = '';
       renderThumbs();
+    });
+
+    function addPastedImages(files) {
+      const total = formState.keptImages.length + formState.newImages.length;
+      const allowed = 5 - total;
+      if (allowed <= 0) { toast('Максимум 5 фото', 'error'); return; }
+      const imgs = files.filter((f) => f && f.type && f.type.startsWith('image/'));
+      if (!imgs.length) { toast('В буфере нет изображения', 'error'); return; }
+      formState.newImages.push(...imgs.slice(0, allowed));
+      renderThumbs();
+      toast('Фото добавлено из буфера');
+    }
+    $('#f-paste').addEventListener('click', async () => {
+      try {
+        if (!navigator.clipboard || !navigator.clipboard.read) { toast('Браузер не поддерживает вставку. Нажмите Ctrl+V', 'error'); return; }
+        const items = await navigator.clipboard.read();
+        const files = [];
+        for (const it of items) {
+          const type = it.types.find((t) => t.startsWith('image/'));
+          if (type) { const blob = await it.getType(type); files.push(new File([blob], 'paste.' + (type.split('/')[1] || 'png'), { type })); }
+        }
+        if (!files.length) { toast('В буфере нет изображения', 'error'); return; }
+        addPastedImages(files);
+      } catch (err) {
+        toast('Не удалось прочитать буфер. Разрешите доступ или нажмите Ctrl+V', 'error');
+      }
+    });
+    modal.addEventListener('paste', (e) => {
+      const items = (e.clipboardData && e.clipboardData.items) || [];
+      const files = [];
+      for (const it of items) { if (it.type && it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) files.push(f); } }
+      if (files.length) { e.preventDefault(); addPastedImages(files); }
+    });
+
+    const relSearch = $('#f-rel-search');
+    if (relSearch) relSearch.addEventListener('input', () => {
+      const q = relSearch.value.trim().toLowerCase();
+      $$('#f-related .rel-option').forEach((el) => {
+        el.style.display = (!q || (el.dataset.name || '').includes(q)) ? '' : 'none';
+      });
     });
 
     $('#f-pdf').addEventListener('change', (e) => {

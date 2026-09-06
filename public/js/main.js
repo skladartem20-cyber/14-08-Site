@@ -292,7 +292,7 @@
         ? imgs.map((src, i) => `<div class="card__layer ${i === 0 ? 'active' : ''}" style="background-image:url('${esc(src)}')"></div>`).join('')
         : '<div class="card__layer active card__layer--empty"></div>';
       const tags = [];
-      if (relCount) tags.push(`<span class="card__tag">+${relCount} запчасти</span>`);
+      if (p.brand) tags.push(`<span class="card__tag">${esc(p.brand)}</span>`);
       if (hasInstr) tags.push(`<span class="card__tag">Инструкция</span>`);
       const slug = esc(p.slug || '');
       const href = '/product/' + slug + '/';
@@ -365,13 +365,13 @@
       : '';
 
     const relatedHtml = related.length ? `
-      <div class="pm__section-title">Дополнительные товары и запчасти</div>
+      <div class="pm__section-title">Запчасти для этого товара</div>
       <div class="pm__related">
         ${related.map((r) => `
-          <div class="pm__rel-card" data-rel="${r.id}">
+          <a class="pm__rel-card" href="/product/${esc(r.slug || '')}/" data-rel="${r.id}">
             <div class="pm__rel-img" style="${r.images && r.images[0] ? `background-image:url('${esc(r.images[0])}')` : ''}"></div>
             <div><div class="pm__rel-name">${esc(r.name)}</div>${r.price ? `<div class="pm__rel-price">${formatPrice(r.price, r.currency)}</div>` : ''}</div>
-          </div>`).join('')}
+          </a>`).join('')}
       </div>` : '';
 
     const instrTabs = [];
@@ -395,7 +395,6 @@
           <h2 class="pm__title">${esc(p.name)}</h2>
           ${p.price ? `<div class="pm__price">${formatPrice(p.price, p.currency)}</div>` : '<div class="pm__price pm__price--na">Цена по запросу</div>'}
           <div class="pm__actions">
-            <button class="btn btn--primary" id="pm-buy">В корзину</button>
             <a class="btn btn--ghost" href="/product/${esc(p.slug || '')}/">Открыть страницу</a>
             ${hasInstr ? `<button class="btn btn--ghost" id="pm-instr-jump">Инструкция</button>` : ''}
           </div>
@@ -403,6 +402,10 @@
           ${relatedHtml}
           ${instrHtml}
         </div>
+      </div>
+      <div class="pm__buybar">
+        <div class="pm__buybar-price">${p.price ? formatPrice(p.price, p.currency) : 'Цена по запросу'}</div>
+        <button class="btn btn--primary pm__buybar-btn" id="pm-buy">В корзину</button>
       </div>`;
 
     const mainEl = $('#pm-main');
@@ -442,7 +445,6 @@
       if (jump) jump.addEventListener('click', () => $('#pm-instruction').scrollIntoView({ behavior: 'smooth', block: 'start' }));
     }
 
-    $$('#product-modal-body .pm__rel-card').forEach((c) => c.addEventListener('click', () => { closeModal($('#product-modal')); setTimeout(() => openProduct(c.dataset.rel), 160); }));
     openModal($('#product-modal'));
   }
 
@@ -747,10 +749,44 @@
   document.addEventListener('click', (e) => { if (!e.target.closest('#nav-catalog-dd')) closeCatalogDropdown(); });
   $('#cart-btn').addEventListener('click', openCart);
 
-  $('#social-fab-toggle').addEventListener('click', () => {
+  function toggleFab() {
     const fab = $('#social-fab'); const open = fab.classList.toggle('open');
     $('#social-fab-toggle').setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
+  }
+  $('#social-fab-toggle').addEventListener('click', toggleFab);
+  const fabLabel = document.querySelector('.social-fab__label');
+  if (fabLabel) fabLabel.addEventListener('click', toggleFab);
+
+  function siteSearch(term) {
+    term = (term || '').trim().toLowerCase();
+    const box = $('#site-search-results');
+    if (!box) return;
+    if (!term) { box.innerHTML = '<div class="search-overlay__hint">Начните вводить название товара</div>'; return; }
+    const list = (DATA.products || []).filter((p) => p.published !== false).filter((p) => {
+      return (p.name || '').toLowerCase().includes(term) || (p.brand || '').toLowerCase().includes(term);
+    }).slice(0, 12);
+    if (!list.length) { box.innerHTML = '<div class="search-overlay__hint">Ничего не найдено</div>'; return; }
+    box.innerHTML = list.map((p) => `<a class="search-result" href="/product/${esc(p.slug || '')}/">
+      <div class="search-result__img" style="${p.images && p.images[0] ? `background-image:url('${esc(p.images[0])}')` : ''}"></div>
+      <div class="search-result__info"><div class="search-result__name">${esc(p.name)}</div>
+      <div class="search-result__meta">${p.brand ? esc(p.brand) + ' · ' : ''}${p.price ? formatPrice(p.price, p.currency) : 'Цена по запросу'}</div></div></a>`).join('');
+  }
+  function openSearch() {
+    const ov = $('#search-overlay'); if (!ov) return;
+    ov.classList.add('open'); ov.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
+    const inp = $('#site-search-input'); siteSearch(inp.value); setTimeout(() => inp.focus(), 50);
+  }
+  function closeSearch() {
+    const ov = $('#search-overlay'); if (!ov) return;
+    ov.classList.remove('open'); ov.setAttribute('aria-hidden', 'true');
+    if (!document.querySelector('.modal.open')) document.body.style.overflow = '';
+  }
+  const searchBtn = $('#nav-search-btn');
+  if (searchBtn) searchBtn.addEventListener('click', openSearch);
+  const siteInput = $('#site-search-input');
+  if (siteInput) siteInput.addEventListener('input', () => siteSearch(siteInput.value));
+  $$('[data-search-close]').forEach((el) => el.addEventListener('click', closeSearch));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSearch(); });
 
   const searchInput = $('#catalog-search');
   searchInput.addEventListener('input', () => { searchTerm = searchInput.value.trim(); $('#search-clear').hidden = !searchTerm; renderCatalog(); });

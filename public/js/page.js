@@ -33,6 +33,11 @@
       var open = fab.classList.toggle('open');
       $('#social-fab-toggle').setAttribute('aria-expanded', open ? 'true' : 'false');
     });
+    var lbl = document.querySelector('.social-fab__label');
+    if (lbl) lbl.addEventListener('click', function () {
+      var open = fab.classList.toggle('open');
+      $('#social-fab-toggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
   }
 
   function initNav() {
@@ -205,6 +210,46 @@
   initNav();
   initProductGallery();
   updateCount();
+  initSiteSearch();
+
+  var searchProducts = null;
+  function initSiteSearch() {
+    var btn = $('#nav-search-btn'), ov = $('#search-overlay'), inp = $('#site-search-input');
+    if (!btn || !ov) return;
+    btn.addEventListener('click', openSearch);
+    if (inp) inp.addEventListener('input', function () { renderSearch(inp.value); });
+    $$('[data-search-close]').forEach(function (el) { el.addEventListener('click', closeSearch); });
+    function openSearch() {
+      ov.classList.add('open'); ov.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
+      setTimeout(function () { inp && inp.focus(); }, 50);
+      if (searchProducts === null) {
+        fetch('/api/data').then(function (r) { return r.json(); }).then(function (d) {
+          searchProducts = (d.products || []).filter(function (p) { return p.published !== false; });
+          renderSearch(inp ? inp.value : '');
+        }).catch(function () { searchProducts = []; });
+      } else { renderSearch(inp ? inp.value : ''); }
+    }
+    function closeSearch() { ov.classList.remove('open'); ov.setAttribute('aria-hidden', 'true'); if (!$('.modal.open')) document.body.style.overflow = ''; }
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSearch(); });
+  }
+  function renderSearch(term) {
+    var box = $('#site-search-results'); if (!box) return;
+    term = (term || '').trim().toLowerCase();
+    if (searchProducts === null) { box.innerHTML = '<div class="search-overlay__hint">Загрузка…</div>'; return; }
+    if (!term) { box.innerHTML = '<div class="search-overlay__hint">Начните вводить название товара</div>'; return; }
+    var list = searchProducts.filter(function (p) {
+      return (p.name || '').toLowerCase().indexOf(term) >= 0 || (p.brand || '').toLowerCase().indexOf(term) >= 0;
+    }).slice(0, 12);
+    if (!list.length) { box.innerHTML = '<div class="search-overlay__hint">Ничего не найдено</div>'; return; }
+    box.innerHTML = list.map(function (p) {
+      var img = p.images && p.images[0] ? "background-image:url('" + esc(p.images[0]) + "')" : '';
+      var price = p.price ? formatPrice(p.price, p.currency) : 'Цена по запросу';
+      return '<a class="search-result" href="/product/' + esc(p.slug || '') + '/">' +
+        '<div class="search-result__img" style="' + img + '"></div>' +
+        '<div class="search-result__info"><div class="search-result__name">' + esc(p.name) + '</div>' +
+        '<div class="search-result__meta">' + (p.brand ? esc(p.brand) + ' · ' : '') + price + '</div></div></a>';
+    }).join('');
+  }
 
   document.addEventListener('click', function (e) {
     var buy = e.target.closest('.card__buy, #pd-buy');

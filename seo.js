@@ -102,6 +102,7 @@ function navHtml(data, base) {
         <a class="nav__pill" href="/#contacts">Контакты</a>
       </nav>
       <div class="nav__right">
+        <button class="nav__icon-btn" id="nav-search-btn" aria-label="Поиск по сайту"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
         <button class="cart-btn" id="cart-btn" aria-label="Корзина">Корзина<span class="cart-btn__count" id="cart-count" hidden>0</span></button>
         <button class="nav__burger" id="burger" aria-label="Меню"><span></span><span></span><span></span></button>
       </div>
@@ -113,7 +114,14 @@ function footerHtml(data) {
   return `
   <footer class="footer"><div class="container footer__inner"><span>© ${new Date().getFullYear()} ${esc((data.site && data.site.title) || 'SPACEXTEN')}</span></div></footer>
   <div class="social-fab" id="social-fab" hidden><div class="social-fab__list" id="social-fab-list"></div>
-  <button class="social-fab__toggle" id="social-fab-toggle" aria-label="Соцсети" aria-expanded="false"><span class="social-fab__icon">✕</span><span class="social-fab__icon social-fab__icon--open">☰</span></button></div>
+  <div class="social-fab__row"><span class="social-fab__label">Техническая поддержка</span>
+  <button class="social-fab__toggle" id="social-fab-toggle" aria-label="Техническая поддержка" aria-expanded="false"><span class="social-fab__icon">✕</span><span class="social-fab__icon social-fab__icon--open"><svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 01-8.5 8.5 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7A8.38 8.38 0 014 11.5 8.5 8.5 0 1121 11.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></div></div>
+  <div class="search-overlay" id="search-overlay" aria-hidden="true"><div class="search-overlay__backdrop" data-search-close></div>
+  <div class="search-overlay__panel" role="dialog" aria-modal="true"><div class="search-overlay__bar">
+  <svg class="search-overlay__icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  <input type="search" id="site-search-input" class="search-overlay__input" placeholder="Поиск товара по названию или бренду..." autocomplete="off" />
+  <button class="search-overlay__close" data-search-close aria-label="Закрыть">×</button></div>
+  <div class="search-overlay__results" id="site-search-results"></div></div></div>
   <div class="modal" id="cart-modal" aria-hidden="true"><div class="modal__backdrop" data-close></div>
   <div class="modal__dialog modal__dialog--cart" role="dialog" aria-modal="true"><button class="modal__close" data-close aria-label="Закрыть">×</button><div class="modal__body" id="cart-modal-body"></div></div></div>`;
 }
@@ -144,6 +152,9 @@ function shell(opts) {
 <meta property="og:site_name" content="${esc(site.title || 'SPACEXTEN')}" />
 ${og}
 <meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -299,7 +310,7 @@ function renderProductPage(data, product, base) {
     <ul class="adv-list">${advantages.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div>` : '';
   const descHtml = (product.description && product.description.trim())
     ? `<div class="pd__block"><h2 class="pd__h2">Описание</h2><div class="pd__desc">${esc(product.description.trim()).replace(/\n/g, '<br>')}</div></div>` : '';
-  const relatedHtml = related.length ? `<div class="pd__block"><h2 class="pd__h2">Похожие товары</h2>
+  const relatedHtml = related.length ? `<div class="pd__block"><h2 class="pd__h2">Запчасти для этого товара</h2>
     <div class="catalog-grid">${related.map((r) => productCard(r, base)).join('')}</div></div>` : '';
 
   const meta = [];
@@ -326,6 +337,10 @@ function renderProductPage(data, product, base) {
     ${specHtml}
     ${advHtml}
     ${relatedHtml}
+  </div>
+  <div class="pd-sticky">
+    <div class="pd-sticky__price">${price ? esc(price) : 'Цена по запросу'}</div>
+    <button class="btn btn--primary pd-sticky__btn card__buy" data-id="${esc(product.id)}" data-name="${esc(product.name)}" data-price="${esc(product.price)}" data-currency="${esc(product.currency)}" data-image="${esc(imgs[0] || '')}">В корзину</button>
   </div>`;
 
   const productLd = {

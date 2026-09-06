@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>SPACEXTEN — профессиональное оборудование и запчасти</title>
   <meta name="description" content="SPACEXTEN — оборудование, оригинальные запчасти, видео и PDF инструкции." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -28,6 +31,9 @@
         <a class="nav__pill" href="#contacts">Контакты</a>
       </nav>
       <div class="nav__right">
+        <button class="nav__icon-btn" id="nav-search-btn" aria-label="Поиск по сайту">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
         <button class="cart-btn" id="cart-btn" aria-label="Корзина">
           Корзина<span class="cart-btn__count" id="cart-count" hidden>0</span>
         </button>
@@ -138,10 +144,25 @@
   
   <div class="social-fab" id="social-fab" hidden>
     <div class="social-fab__list" id="social-fab-list"></div>
-    <button class="social-fab__toggle" id="social-fab-toggle" aria-label="Соцсети" aria-expanded="false">
-      <span class="social-fab__icon">✕</span>
-      <span class="social-fab__icon social-fab__icon--open">☰</span>
-    </button>
+    <div class="social-fab__row">
+      <span class="social-fab__label">Техническая поддержка</span>
+      <button class="social-fab__toggle" id="social-fab-toggle" aria-label="Техническая поддержка" aria-expanded="false">
+        <span class="social-fab__icon">✕</span>
+        <span class="social-fab__icon social-fab__icon--open"><svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 01-8.5 8.5 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7A8.38 8.38 0 014 11.5 8.5 8.5 0 1121 11.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="search-overlay" id="search-overlay" aria-hidden="true">
+    <div class="search-overlay__backdrop" data-search-close></div>
+    <div class="search-overlay__panel" role="dialog" aria-modal="true">
+      <div class="search-overlay__bar">
+        <svg class="search-overlay__icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="search" id="site-search-input" class="search-overlay__input" placeholder="Поиск товара по названию или бренду..." autocomplete="off" />
+        <button class="search-overlay__close" data-search-close aria-label="Закрыть">×</button>
+      </div>
+      <div class="search-overlay__results" id="site-search-results"></div>
+    </div>
   </div>
 
   
