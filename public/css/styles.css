@@ -509,3 +509,5 @@ img { max-width: 100%; display: block; }
 }
 
 .card__price { margin-top: auto; }
+
+[hidden] { display: none !important; }

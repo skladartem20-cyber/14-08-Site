@@ -207,7 +207,7 @@
 
   applyColors();
   renderSocials();
-  if (document.querySelector('.pd')) { var _fab = document.getElementById('social-fab'); if (_fab) _fab.hidden = true; }
+  if (document.querySelector('.pd')) { var _fab = document.getElementById('social-fab'); if (_fab) { _fab.hidden = true; _fab.style.display = 'none'; } }
   initNav();
   initProductGallery();
   updateCount();

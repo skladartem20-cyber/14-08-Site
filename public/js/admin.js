@@ -128,6 +128,7 @@
     if (tab === 'header') renderHeaderTab();
     else if (tab === 'about') renderAboutTab();
     else if (tab === 'catalog') renderCatalogTab();
+    else if (tab === 'products') renderProductsTab();
     else if (tab === 'instructions') renderInstructionsTab();
     else if (tab === 'blocks') renderBlocksTab();
     else if (tab === 'socials') renderSocialsTab();
@@ -400,24 +401,18 @@
     const cats = DATA.productCategories || [];
     $('#panel').innerHTML = `
       <div class="panel-head">
-        <div><h2>Каталог</h2><p>Шаг 1 — создайте категории и подкатегории. Шаг 2 — добавляйте в них товары.</p></div>
+        <div><h2>Категории и подкатегории</h2><p>Категория = отдельная страница каталога (/catalog/…). Товары добавляются во вкладке «Товары».</p></div>
         <button class="btn btn--primary" id="add-product">+ Добавить товар</button>
       </div>
 
       <div class="card-block">
-        <div class="block-head"><h3>1. Категории и подкатегории</h3><span class="block-head__badge">${cats.length} кат.</span></div>
-        <p class="hint-text">Категория = отдельная страница каталога (/catalog/…). Подкатегории — это фильтры внутри категории (бренд, мощность, напряжение и т.д.), отдельных страниц у них нет.</p>
+        <div class="block-head"><h3>Категории</h3><span class="block-head__badge">${cats.length} кат. · ${products.length} тов.</span></div>
+        <p class="hint-text">Подкатегории — это фильтры внутри категории (бренд, мощность, напряжение и т.д.), отдельных страниц у них нет.</p>
         <div class="add-inline">
           <input class="input" id="new-prod-cat" placeholder="Название новой категории — напр. «Лодочные моторы»" />
           <button class="btn btn--primary" id="add-prod-cat">+ Категория</button>
         </div>
         <div class="cat-manage" id="cat-manage"></div>
-      </div>
-
-      <div class="card-block">
-        <div class="block-head"><h3>2. Товары</h3><span class="block-head__badge">${products.length} тов.</span></div>
-        <p class="hint-text">У каждого товара своя страница /product/…, которая создаётся автоматически.</p>
-        ${products.length ? '<div class="admin-products" id="prod-list"></div>' : '<p class="empty-list">Товаров пока нет. Нажмите «Добавить товар» вверху справа.</p>'}
       </div>`;
 
     const cm = $('#cat-manage');
@@ -540,11 +535,45 @@
       catch (err) { toast(err.message, 'error'); }
     });
 
-    if (products.length) {
-      $('#prod-list').innerHTML = products.map((p) => {
-        const relCount = (p.relatedIds || []).length;
-        const hasInstr = p.instruction && (p.instruction.videoUrl || p.instruction.pdf || p.instruction.text);
-        const plaque = p.badge === 'best' ? '<span class="mini-plaque mini-plaque--best">Лучший выбор</span>'
+    $('#add-product').addEventListener('click', () => {
+      if (!(DATA.productCategories || []).length) {
+        if (!confirm('Категорий ещё нет. Товар можно создать, но без категории он попадёт в раздел «Прочее». Продолжить?')) return;
+      }
+      openProductForm(null);
+    });
+  }
+
+  let prodFilter = { q: '', cat: '__all' };
+  function renderProductsTab() {
+    const products = DATA.products || [];
+    const cats = DATA.productCategories || [];
+    $('#panel').innerHTML = `
+      <div class="panel-head">
+        <div><h2>Товары</h2><p>Все карточки товаров. У каждого своя страница /product/…, которая создаётся автоматически.</p></div>
+        <button class="btn btn--primary" id="add-product">+ Добавить товар</button>
+      </div>
+      <div class="card-block">
+        <div class="prod-toolbar">
+          <input class="input" id="prod-search" placeholder="🔎 Поиск по названию, бренду или артикулу" value="${esc(prodFilter.q)}" />
+          <select class="select" id="prod-cat-filter">
+            <option value="__all">Все категории (${products.length})</option>
+            ${cats.map((c) => `<option value="${c.id}" ${prodFilter.cat === c.id ? 'selected' : ''}>${esc(c.name)} (${products.filter((p) => p.categoryId === c.id).length})</option>`).join('')}
+            <option value="__none" ${prodFilter.cat === '__none' ? 'selected' : ''}>Без категории (${products.filter((p) => !catName(p.categoryId)).length})</option>
+          </select>
+        </div>
+        <div class="admin-products" id="prod-list"></div>
+      </div>`;
+
+    const listEl = $('#prod-list');
+    function draw() {
+      const q = prodFilter.q.trim().toLowerCase();
+      let list = products.slice();
+      if (prodFilter.cat === '__none') list = list.filter((p) => !catName(p.categoryId));
+      else if (prodFilter.cat !== '__all') list = list.filter((p) => p.categoryId === prodFilter.cat);
+      if (q) list = list.filter((p) => (p.name || '').toLowerCase().includes(q) || (p.brand || '').toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q));
+      if (!list.length) { listEl.innerHTML = '<p class="empty-list">' + (products.length ? 'Ничего не найдено.' : 'Товаров пока нет. Нажмите «Добавить товар».') + '</p>'; return; }
+      listEl.innerHTML = list.map((p) => {
+        const plaque = p.badge === 'best' ? '<span class="mini-plaque mini-plaque--best">Лучший</span>'
           : p.badge === 'sale' ? '<span class="mini-plaque mini-plaque--sale">Распродажа</span>' : '';
         const cn = catName(p.categoryId);
         return `
@@ -552,8 +581,8 @@
           <div class="admin-product__img" style="${p.images && p.images[0] ? `background-image:url('${p.images[0]}')` : ''}"></div>
           <div>
             <div class="admin-product__name">${esc(p.name)} ${plaque} ${p.published === false ? '<span class="prod-badge prod-badge--draft">черновик</span>' : ''}</div>
-            ${p.price ? `<div class="admin-product__price">${esc(p.price)} ${esc(p.currency || '₽')}</div>` : ''}
-            <div class="admin-product__meta">${cn ? '🗂 ' + esc(cn) + ' · ' : '<span style="color:var(--danger)">без категории</span> · '}${(p.images || []).length} фото · ${relCount} запч. · <a href="/product/${esc(p.slug || '')}/" target="_blank" style="color:var(--primary-2)">/product/${esc(p.slug || '')}/</a></div>
+            ${p.price ? `<div class="admin-product__price">${esc(p.price)} ${esc(p.currency || '₽')}</div>` : '<div class="admin-product__price" style="color:var(--muted)">Цена по запросу</div>'}
+            <div class="admin-product__meta">${cn ? '🗂 ' + esc(cn) : '<span style="color:var(--danger)">без категории</span>'} · ${(p.images || []).length} фото · <a href="/product/${esc(p.slug || '')}/" target="_blank" style="color:var(--primary-2)">открыть ↗</a></div>
           </div>
           <div class="admin-product__actions">
             <button class="btn btn--outline btn--sm edit-prod" data-id="${p.id}">Изменить</button>
@@ -561,15 +590,16 @@
           </div>
         </div>`;
       }).join('');
-
-      $$('.edit-prod').forEach((b) => b.addEventListener('click', () => openProductForm(b.dataset.id)));
-      $$('.del-prod').forEach((b) => b.addEventListener('click', async () => {
+      $$('#prod-list .edit-prod').forEach((b) => b.addEventListener('click', () => openProductForm(b.dataset.id)));
+      $$('#prod-list .del-prod').forEach((b) => b.addEventListener('click', async () => {
         if (!confirm('Удалить товар? Действие необратимо.')) return;
         try { await api('DELETE', '/api/products/' + b.dataset.id); toast('Товар удалён'); await reloadAndRender(); }
         catch (err) { toast(err.message, 'error'); }
       }));
     }
-
+    draw();
+    $('#prod-search').addEventListener('input', (e) => { prodFilter.q = e.target.value; draw(); });
+    $('#prod-cat-filter').addEventListener('change', (e) => { prodFilter.cat = e.target.value; draw(); });
     $('#add-product').addEventListener('click', () => {
       if (!(DATA.productCategories || []).length) {
         if (!confirm('Категорий ещё нет. Товар можно создать, но без категории он попадёт в раздел «Прочее». Продолжить?')) return;

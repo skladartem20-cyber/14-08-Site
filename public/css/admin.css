@@ -298,3 +298,11 @@ body.is-authed .admin { display: grid; }
 }
 
 .cat-block > .cat-row { margin: 0; }
+
+.prod-toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.prod-toolbar .input { flex: 1; min-width: 220px; margin: 0; }
+.prod-toolbar .select { width: 260px; max-width: 100%; margin: 0; }
+@media (max-width: 620px) {
+  .prod-toolbar { flex-direction: column; }
+  .prod-toolbar .select { width: 100%; }
+}
