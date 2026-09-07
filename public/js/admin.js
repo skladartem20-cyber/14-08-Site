@@ -689,7 +689,7 @@
         <button type="button" class="btn btn--outline btn--sm" id="f-adv-add">+ Преимущество</button>
 
         <div class="form-sect-title">Фотографии</div>
-        <label class="field-label">Фотографии (до 5)</label>
+        <label class="field-label">Фотографии (до 12)</label>
         <div class="size-hint">⌕ Рекомендуемый размер фото: <strong>1000 × 1000 px</strong> (квадрат), JPG/PNG/WEBP</div>
         <div class="thumbs" id="f-thumbs"></div>
         <label class="uploader"><input type="file" id="f-images" accept="image/*" multiple />Нажмите, чтобы <strong>добавить фото</strong></label>
@@ -756,8 +756,8 @@
     $('#f-images').addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       const total = formState.keptImages.length + formState.newImages.length;
-      const allowed = 5 - total;
-      if (allowed <= 0) { toast('Максимум 5 фото', 'error'); e.target.value = ''; return; }
+      const allowed = 12 - total;
+      if (allowed <= 0) { toast('Максимум 12 фото', 'error'); e.target.value = ''; return; }
       formState.newImages.push(...files.slice(0, allowed));
       e.target.value = '';
       renderThumbs();
@@ -765,8 +765,8 @@
 
     function addPastedImages(files) {
       const total = formState.keptImages.length + formState.newImages.length;
-      const allowed = 5 - total;
-      if (allowed <= 0) { toast('Максимум 5 фото', 'error'); return; }
+      const allowed = 12 - total;
+      if (allowed <= 0) { toast('Максимум 12 фото', 'error'); return; }
       const imgs = files.filter((f) => f && f.type && f.type.startsWith('image/'));
       if (!imgs.length) { toast('В буфере нет изображения', 'error'); return; }
       formState.newImages.push(...imgs.slice(0, allowed));

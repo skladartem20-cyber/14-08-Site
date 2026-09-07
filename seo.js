@@ -114,8 +114,7 @@ function footerHtml(data) {
   return `
   <footer class="footer"><div class="container footer__inner"><span>© ${new Date().getFullYear()} ${esc((data.site && data.site.title) || 'SPACEXTEN')}</span></div></footer>
   <div class="social-fab" id="social-fab" hidden><div class="social-fab__list" id="social-fab-list"></div>
-  <div class="social-fab__row"><span class="social-fab__label">Техническая поддержка</span>
-  <button class="social-fab__toggle" id="social-fab-toggle" aria-label="Техническая поддержка" aria-expanded="false"><span class="social-fab__icon">✕</span><span class="social-fab__icon social-fab__icon--open"><svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 01-8.5 8.5 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7A8.38 8.38 0 014 11.5 8.5 8.5 0 1121 11.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></div></div>
+  <button class="social-fab__toggle" id="social-fab-toggle" aria-label="Связаться с нами" aria-expanded="false"><span class="social-fab__icon">✕</span><span class="social-fab__icon social-fab__icon--open"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span></button></div>
   <div class="search-overlay" id="search-overlay" aria-hidden="true"><div class="search-overlay__backdrop" data-search-close></div>
   <div class="search-overlay__panel" role="dialog" aria-modal="true"><div class="search-overlay__bar">
   <svg class="search-overlay__icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -194,21 +193,16 @@ function productCard(p, base) {
   const url = prodUrl(base, p);
   const plaque = p.badge === 'best' ? '<span class="card__plaque card__plaque--best">Лучший выбор</span>'
     : p.badge === 'sale' ? '<span class="card__plaque card__plaque--sale">Распродажа</span>' : '';
-  return `<article class="card" data-id="${esc(p.id)}">
+  return `<a class="card" href="${esc(url)}" data-id="${esc(p.id)}" aria-label="${esc(p.name)}">
     ${plaque}
-    <a class="card__gallery" href="${esc(url)}" aria-label="${esc(p.name)}">
+    <div class="card__gallery">
       <div class="card__layer active${img ? '' : ' card__layer--empty'}" ${img ? `style="background-image:url('${esc(img)}')"` : ''}></div>
-    </a>
-    <div class="card__info">
-      <h3 class="card__name"><a href="${esc(url)}">${esc(p.name)}</a></h3>
-      ${p.brand ? `<div class="card__tags"><span class="card__tag">${esc(p.brand)}</span></div>` : ''}
-      ${price ? `<div class="card__price">${esc(price)}</div>` : '<div class="card__price card__price--na">Цена по запросу</div>'}
-      <div class="card__actions">
-        <button class="btn btn--primary btn--sm card__buy" data-id="${esc(p.id)}" data-name="${esc(p.name)}" data-price="${esc(p.price)}" data-currency="${esc(p.currency)}" data-image="${esc(img)}">В корзину</button>
-        <a class="btn btn--ghost btn--sm" href="${esc(url)}">Подробнее</a>
-      </div>
     </div>
-  </article>`;
+    <div class="card__info">
+      <h3 class="card__name">${esc(p.name)}</h3>
+      ${price ? `<div class="card__price">${esc(price)}</div>` : '<div class="card__price card__price--na">Цена по запросу</div>'}
+    </div>
+  </a>`;
 }
 
 function renderCatalogIndex(data, base) {

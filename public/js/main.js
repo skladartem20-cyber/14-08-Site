@@ -284,53 +284,24 @@
     }
     grid.innerHTML = list.map((p) => {
       const imgs = (p.images && p.images.length) ? p.images : [];
-      const relCount = (p.relatedIds || []).filter((id) => products.some((x) => x.id === id)).length;
-      const hasInstr = !!(p.instruction && (p.instruction.videoUrl || p.instruction.pdf || p.instruction.text));
       const plaque = p.badge === 'best' ? '<span class="card__plaque card__plaque--best">Лучший выбор</span>'
         : p.badge === 'sale' ? '<span class="card__plaque card__plaque--sale">Распродажа</span>' : '';
-      const layers = imgs.length
-        ? imgs.map((src, i) => `<div class="card__layer ${i === 0 ? 'active' : ''}" style="background-image:url('${esc(src)}')"></div>`).join('')
-        : '<div class="card__layer active card__layer--empty"></div>';
-      const tags = [];
-      if (p.brand) tags.push(`<span class="card__tag">${esc(p.brand)}</span>`);
-      if (hasInstr) tags.push(`<span class="card__tag">Инструкция</span>`);
+      const img = imgs[0] || '';
       const slug = esc(p.slug || '');
       const href = '/product/' + slug + '/';
       return `
-      <article class="card reveal" data-id="${p.id}">
+      <a class="card reveal" href="${href}" data-id="${p.id}" aria-label="${esc(p.name)}">
         ${plaque}
-        <a class="card__gallery" href="${href}" data-count="${imgs.length}" aria-label="${esc(p.name)}">
-          ${layers}
-          ${imgs.length > 1 ? `<div class="card__gallery-dots">${imgs.map((_, i) => `<span class="cgd ${i === 0 ? 'active' : ''}"></span>`).join('')}</div>` : ''}
-        </a>
-        <div class="card__info">
-          <h3 class="card__name"><a href="${href}">${esc(p.name)}</a></h3>
-          ${tags.length ? `<div class="card__tags">${tags.join('')}</div>` : ''}
-          ${p.price ? `<div class="card__price">${formatPrice(p.price, p.currency)}</div>` : '<div class="card__price card__price--na">Цена по запросу</div>'}
-          <div class="card__actions">
-            <button class="btn btn--primary btn--sm card__buy" data-id="${p.id}">В корзину</button>
-            <button class="btn btn--ghost btn--sm card__more" data-id="${p.id}">Быстрый просмотр</button>
-          </div>
-          <a class="card__detail" href="${href}">Подробнее →</a>
+        <div class="card__gallery">
+          <div class="card__layer active${img ? '' : ' card__layer--empty'}" ${img ? `style="background-image:url('${esc(img)}')"` : ''}></div>
         </div>
-      </article>`;
+        <div class="card__info">
+          <h3 class="card__name">${esc(p.name)}</h3>
+          ${p.price ? `<div class="card__price">${formatPrice(p.price, p.currency)}</div>` : '<div class="card__price card__price--na">Цена по запросу</div>'}
+        </div>
+      </a>`;
     }).join('');
-    $$('.card', grid).forEach((card) => {
-      initHoverGallery(card);
-      $('.card__more', card).addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openProduct(card.dataset.id); });
-      $('.card__buy', card).addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); addToCart(card.dataset.id); });
-    });
     initReveal();
-  }
-  function initHoverGallery(card) {
-    const gallery = $('.card__gallery', card);
-    const layers = $$('.card__layer', gallery);
-    const dots = $$('.cgd', gallery);
-    if (layers.length < 2) return;
-    let idx = 0, timer = null;
-    function show(n) { idx = (n + layers.length) % layers.length; layers.forEach((l, i) => l.classList.toggle('active', i === idx)); dots.forEach((d, i) => d.classList.toggle('active', i === idx)); }
-    card.addEventListener('mouseenter', () => { if (timer) return; timer = setInterval(() => show(idx + 1), 1100); });
-    card.addEventListener('mouseleave', () => { if (timer) { clearInterval(timer); timer = null; } show(0); });
   }
 
   function findInstructionItem(itemId) {

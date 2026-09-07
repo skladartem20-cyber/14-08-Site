@@ -295,7 +295,7 @@ function fileExt(name) {
 }
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024, files: 10 },
+  limits: { fileSize: 50 * 1024 * 1024, files: 15 },
   fileFilter: (req, file, cb) => {
     const ext = fileExt(file.originalname);
     if (file.fieldname === 'pdf') return ext === 'pdf' ? cb(null, true) : cb(new Error('Допускается только PDF-файл'));
@@ -940,7 +940,7 @@ app.delete('/api/product-categories/:id/subcategories/:subId', requireAuth, (req
 });
 
 const productUpload = upload.fields([
-  { name: 'images', maxCount: 5 },
+  { name: 'images', maxCount: 12 },
   { name: 'pdf', maxCount: 1 }
 ]);
 
@@ -1003,7 +1003,7 @@ app.post('/api/products', requireAuth, productUpload, async (req, res) => {
     seoDescription: (req.body.seoDescription || '').trim(),
     published: req.body.published === false || req.body.published === 'false' ? false : true,
     badge: cleanBadge(req.body.badge),
-    images: images.slice(0, 5),
+    images: images.slice(0, 12),
     relatedIds: parseRelated(req.body.relatedIds),
     linkedInstructionId: (req.body.linkedInstructionId || '').trim(),
     orderUrl: (req.body.orderUrl || '').trim(),
@@ -1034,7 +1034,7 @@ app.put('/api/products/:id', requireAuth, productUpload, async (req, res) => {
     if (!keepImages.includes(img)) deleteUploaded(img);
   }
   const newImages = await storeFiles(files.images || []);
-  product.images = [...keepImages, ...newImages].slice(0, 5);
+  product.images = [...keepImages, ...newImages].slice(0, 12);
 
   if (files.pdf && files.pdf[0]) {
     deleteUploaded(product.instruction.pdf);

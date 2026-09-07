@@ -207,6 +207,7 @@
 
   applyColors();
   renderSocials();
+  if (document.querySelector('.pd')) { var _fab = document.getElementById('social-fab'); if (_fab) _fab.hidden = true; }
   initNav();
   initProductGallery();
   updateCount();
