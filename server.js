@@ -93,6 +93,7 @@ function normalize(d) {
   d.site = Object.assign({ title: 'SPACEXTEN', accent: '#3b82f6', theme: 'light', orderUrl: '', sliderRatio: '1600/250' }, d.site || {});
   d.site.theme = d.site.theme === 'dark' ? 'dark' : 'light';
   if (typeof d.site.sliderRatio !== 'string' || !/^\d+\s*\/\s*\d+$/.test(d.site.sliderRatio)) d.site.sliderRatio = '1600/250';
+  d.site.carouselSpeed = Math.min(160, Math.max(8, Number(d.site.carouselSpeed) || 40));
   const hex = (v, def) => (typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) ? v : def;
   d.site.colors = d.site.colors && typeof d.site.colors === 'object' ? d.site.colors : {};
   d.site.colors = {
@@ -595,12 +596,13 @@ app.get('/api/login-log', requireAuth, (req, res) => {
 
 app.put('/api/site', requireAuth, (req, res) => {
   const data = readData();
-  const { theme, accent, orderUrl, title, sliderRatio } = req.body || {};
+  const { theme, accent, orderUrl, title, sliderRatio, carouselSpeed } = req.body || {};
   if (theme === 'dark' || theme === 'light') data.site.theme = theme;
   if (typeof accent === 'string' && accent) data.site.accent = accent;
   if (typeof orderUrl === 'string') data.site.orderUrl = orderUrl.trim();
   if (typeof title === 'string' && title.trim()) data.site.title = title.trim();
   if (typeof sliderRatio === 'string' && /^\d+\s*\/\s*\d+$/.test(sliderRatio)) data.site.sliderRatio = sliderRatio;
+  if (carouselSpeed !== undefined) data.site.carouselSpeed = Math.min(160, Math.max(8, Number(carouselSpeed) || 40));
   const colors = req.body && req.body.colors;
   if (colors && typeof colors === 'object') {
     const hex = (v, cur) => (typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) ? v : cur;
