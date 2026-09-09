@@ -193,7 +193,7 @@ function productCard(p, base) {
   const url = prodUrl(base, p);
   const plaque = p.badge === 'best' ? '<span class="card__plaque card__plaque--best">Лучший выбор</span>'
     : p.badge === 'sale' ? '<span class="card__plaque card__plaque--sale">Распродажа</span>' : '';
-  return `<a class="card" href="${esc(url)}" data-id="${esc(p.id)}" aria-label="${esc(p.name)}">
+  return `<a class="card" href="${esc(url)}" data-id="${esc(p.id)}" data-sub="${esc(p.subcategoryId || '')}" aria-label="${esc(p.name)}">
     ${plaque}
     <div class="card__gallery">
       <div class="card__layer active${img ? '' : ' card__layer--empty'}" ${img ? `style="background-image:url('${esc(img)}')"` : ''}></div>
@@ -241,12 +241,11 @@ function renderCategoryPage(data, cat, base) {
     : `${cat.name}: ${products.length ? products.length + ' товаров' : 'каталог'} с доставкой. Характеристики, цены и наличие.`;
   const description = seoDescFor(cat, fallbackDesc);
   const crumbs = [{ name: 'Главная', url: '/' }, { name: 'Каталог', url: '/catalog/' }, { name: cat.name }];
-  const brands = [...new Set(products.map((p) => (p.brand || '').trim()).filter(Boolean))];
   const subs = (cat.subcategories || []);
-  const filters = (brands.length || subs.length) ? `<div class="cat-filters" id="cat-filters">
-    ${brands.length ? `<div class="cat-filters__group"><span class="cat-filters__label">Бренд:</span>
-      <button class="subchip subchip--active" data-brand="__all">Все</button>
-      ${brands.map((b) => `<button class="subchip" data-brand="${esc(b)}">${esc(b)}</button>`).join('')}</div>` : ''}
+  const usedSubs = subs.filter((s) => products.some((p) => p.subcategoryId === s.id));
+  const filters = usedSubs.length ? `<div class="cat-filters" id="cat-filters">
+      <button class="subchip subchip--active" data-sub="__all">Все</button>
+      ${usedSubs.map((s) => `<button class="subchip" data-sub="${esc(s.id)}">${esc(s.name)}</button>`).join('')}
   </div>` : '';
   const grid = products.length
     ? `<div class="catalog-grid" id="cat-products">${products.map((p) => productCard(p, base)).join('')}</div>`

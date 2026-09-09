@@ -16,6 +16,14 @@ app.set('trust proxy', true);
 const PORT = process.env.PORT || 80;
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN || 'SP2026';
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || 'c03d8f2cd80de023dc0038ffdbf03206:b2b5694da1eeed2ee00a661b75a8ad1063e418866fed2f580eb9af0dc669bd754249fe76fa7a94ea00762d64e69e31fbc911639ab830c528e693e2a392b28ac0';
+const EFFECTIVE_PASSWORD_HASH = (() => {
+  const plain = (process.env.ADMIN_PASSWORD || '').trim();
+  if (plain) {
+    const salt = crypto.randomBytes(16).toString('hex');
+    return salt + ':' + crypto.scryptSync(plain, salt, 64).toString('hex');
+  }
+  return ADMIN_PASSWORD_HASH;
+})();
 const ADMIN_PATH = process.env.ADMIN_PATH || '/aaddmm';
 const MAX_LOGIN_ATTEMPTS = 3;
 const LOCK_MS = 24 * 60 * 60 * 1000;
@@ -321,7 +329,7 @@ function timingSafeEqual(a, b) {
   return crypto.timingSafeEqual(ba, bb);
 }
 function verifyPassword(password) {
-  const [salt, hash] = String(ADMIN_PASSWORD_HASH).split(':');
+  const [salt, hash] = String(EFFECTIVE_PASSWORD_HASH).split(':');
   if (!salt || !hash) return false;
   let derived;
   try { derived = crypto.scryptSync(String(password), salt, 64).toString('hex'); }

@@ -226,7 +226,7 @@
   function closeCatalogDropdown() { $('#nav-catalog-dd').classList.remove('open'); $('#nav-catalog-btn').setAttribute('aria-expanded', 'false'); }
 
   let activeCatId = '__all';
-  let carouselAnim = null;
+  let activeSubId = '__all';
   function productCardHtml(p) {
     const imgs = (p.images && p.images.length) ? p.images : [];
     const plaque = p.badge === 'best' ? '<span class="card__plaque card__plaque--best">Лучший выбор</span>'
@@ -242,6 +242,11 @@
           ${p.price ? `<div class="card__price">${formatPrice(p.price, p.currency)}</div>` : '<div class="card__price card__price--na">Цена по запросу</div>'}
         </div>
       </a>`;
+  }
+  function countInCat(catId, products, cats) {
+    if (catId === '__all') return products.length;
+    if (catId === '__none') return products.filter((p) => !p.categoryId || !cats.some((c) => c.id === p.categoryId)).length;
+    return products.filter((p) => p.categoryId === catId).length;
   }
   function renderCatalog() {
     const products = (DATA.products || []).filter((p) => p.published !== false);
@@ -264,91 +269,56 @@
     cats.forEach((c) => chips.push({ id: c.id, name: c.name }));
     const hasUncat = products.some((p) => !p.categoryId || !cats.some((c) => c.id === p.categoryId));
     if (hasUncat && cats.length) chips.push({ id: '__none', name: 'Прочее' });
-    if (!chips.some((c) => c.id === activeCatId)) activeCatId = '__all';
+    if (!chips.some((c) => c.id === activeCatId)) { activeCatId = '__all'; activeSubId = '__all'; }
+
+    const subtitleEl = $('#catalog-subtitle');
+    if (subtitleEl) {
+      const active = cats.find((c) => c.id === activeCatId);
+      subtitleEl.textContent = activeCatId === '__all' ? 'Все товары' : (activeCatId === '__none' ? 'Прочее' : (active ? active.name : 'Товары'));
+    }
 
     const chipsEl = $('#catalog-chips');
     if (chipsEl) {
       chipsEl.innerHTML = cats.length
-        ? chips.map((c) => `<button class="chip ${c.id === activeCatId ? 'chip--active' : ''}" data-cat="${esc(c.id)}" role="tab">${esc(c.name)}</button>`).join('')
+        ? chips.map((c) => `<button class="chip ${c.id === activeCatId ? 'chip--active' : ''}" data-cat="${esc(c.id)}" role="tab">${esc(c.name)}<span class="chip__count">${countInCat(c.id, products, cats)}</span></button>`).join('')
         : '';
-      $$('#catalog-chips .chip').forEach((ch) => ch.addEventListener('click', () => { activeCatId = ch.dataset.cat; renderCarousel(products, cats); }));
+      $$('#catalog-chips .chip').forEach((ch) => ch.addEventListener('click', () => { activeCatId = ch.dataset.cat; activeSubId = '__all'; renderCatalog(); }));
     }
-    renderCarousel(products, cats);
+
+    const subEl = $('#catalog-subchips');
+    const activeCat = cats.find((c) => c.id === activeCatId);
+    const subs = (activeCat && activeCat.subcategories) || [];
+    if (subEl) {
+      if (subs.length) {
+        if (!['__all'].concat(subs.map((s) => s.id)).includes(activeSubId)) activeSubId = '__all';
+        const subChips = [{ id: '__all', name: 'Все' }].concat(subs.map((s) => ({ id: s.id, name: s.name })));
+        subEl.innerHTML = subChips.map((s) => `<button class="subchip ${s.id === activeSubId ? 'subchip--active' : ''}" data-sub="${esc(s.id)}">${esc(s.name)}</button>`).join('');
+        subEl.style.display = '';
+        $$('#catalog-subchips .subchip').forEach((sc) => sc.addEventListener('click', () => { activeSubId = sc.dataset.sub; renderCatalog(); }));
+      } else {
+        subEl.innerHTML = '';
+        subEl.style.display = 'none';
+        activeSubId = '__all';
+      }
+    }
+
+    renderCatalogGrid(products, cats);
   }
-  function shuffle(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-    return a;
-  }
-  function renderCarousel(products, cats) {
-    const track = $('#carousel-track');
-    if (!track) return;
+  function renderCatalogGrid(products, cats) {
+    const grid = $('#catalog-grid');
+    if (!grid) return;
     let list = products;
     if (activeCatId === '__none') list = products.filter((p) => !p.categoryId || !cats.some((c) => c.id === p.categoryId));
-    else if (activeCatId !== '__all') list = products.filter((p) => p.categoryId === activeCatId);
-    if (activeCatId === '__all') list = shuffle(list);
-
-    const titleEl = $('#carousel-title');
-    if (titleEl) {
-      const active = cats.find((c) => c.id === activeCatId);
-      titleEl.textContent = activeCatId === '__all' ? 'Все товары' : (activeCatId === '__none' ? 'Прочее' : (active ? active.name : 'Товары'));
+    else if (activeCatId !== '__all') {
+      list = products.filter((p) => p.categoryId === activeCatId);
+      if (activeSubId !== '__all') list = list.filter((p) => p.subcategoryId === activeSubId);
     }
-
-    if (carouselAnim) { cancelAnimationFrame(carouselAnim); carouselAnim = null; }
-    track.style.transform = 'translateX(0)';
-
     if (!list.length) {
-      track.innerHTML = `<p class="empty-note" style="padding:20px">${products.length ? 'В этой категории пока нет товаров.' : ''}</p>`;
+      grid.innerHTML = products.length ? '<p class="empty-note">В этой категории пока нет товаров.</p>' : '';
       return;
     }
-
-    const cardsHtml = list.map(productCardHtml).join('');
-    const loop = list.length > 2;
-    track.innerHTML = loop ? cardsHtml + cardsHtml : cardsHtml;
-    track.classList.toggle('prod-carousel__track--static', !loop);
-
-    startCarousel(track, loop);
-  }
-  function startCarousel(track, loop) {
-    const wrap = track.parentElement;
-    const speed = Math.max(8, Number(DATA.site && DATA.site.carouselSpeed) || 40);
-    let offset = 0, last = null, paused = false;
-    let dragging = false, moved = false, startX = 0, startOffset = 0, resumeTimer = null;
-
-    function half() { return track.scrollWidth / 2; }
-    function wrapOffset(o) {
-      if (!loop) return Math.max(0, o);
-      const h = half();
-      if (h <= 0) return o;
-      o = o % h; if (o < 0) o += h;
-      return o;
-    }
-    function apply() { track.style.transform = 'translateX(' + (-offset) + 'px)'; }
-
-    if (!loop) { wrap.style.cursor = ''; return; }
-
-    wrap.onmouseenter = () => { if (!dragging) paused = true; };
-    wrap.onmouseleave = () => { if (!dragging) paused = false; };
-    wrap.style.cursor = 'grab';
-    wrap.style.touchAction = 'pan-y';
-
-    function down(x) { dragging = true; moved = false; paused = true; startX = x; startOffset = offset; wrap.style.cursor = 'grabbing'; if (resumeTimer) clearTimeout(resumeTimer); }
-    function move(x) { if (!dragging) return; const dx = x - startX; if (Math.abs(dx) > 5) moved = true; offset = wrapOffset(startOffset - dx); apply(); }
-    function up() { if (!dragging) return; dragging = false; wrap.style.cursor = 'grab'; if (resumeTimer) clearTimeout(resumeTimer); resumeTimer = setTimeout(() => { paused = false; }, 2000); }
-
-    wrap.addEventListener('pointerdown', (e) => { down(e.clientX); try { wrap.setPointerCapture(e.pointerId); } catch (err) {} });
-    wrap.addEventListener('pointermove', (e) => { move(e.clientX); });
-    wrap.addEventListener('pointerup', up);
-    wrap.addEventListener('pointercancel', up);
-    wrap.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
-
-    function step(ts) {
-      if (last == null) last = ts;
-      const dt = (ts - last) / 1000; last = ts;
-      if (!paused && !dragging) { offset = wrapOffset(offset + speed * dt); apply(); }
-      carouselAnim = requestAnimationFrame(step);
-    }
-    carouselAnim = requestAnimationFrame(step);
+    grid.innerHTML = list.map(productCardHtml).join('');
+    initReveal();
   }
 
   function findInstructionItem(itemId) {

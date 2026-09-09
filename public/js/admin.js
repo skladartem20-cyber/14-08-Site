@@ -1531,16 +1531,6 @@
       </div>
 
       <div class="card-block">
-        <h3>Карусель товаров на главной</h3>
-        <p class="hint-text">Скорость плавной прокрутки подборки товаров под категориями. Меньше — медленнее.</p>
-        <div class="carousel-speed">
-          <input type="range" id="s-carousel" min="8" max="160" step="4" value="${Number(s.carouselSpeed) || 40}" />
-          <span class="carousel-speed__val"><b id="carousel-val">${Number(s.carouselSpeed) || 40}</b> px/сек</span>
-        </div>
-        <button class="btn btn--primary btn--sm" id="save-carousel">Сохранить скорость</button>
-      </div>
-
-      <div class="card-block">
         <h3>Общая ссылка «Заказать товар»</h3>
         <p class="hint-text">Используется, если у товара не задана собственная ссылка.</p>
         <label class="field-label">Ссылка (мессенджер)</label>
@@ -1590,15 +1580,6 @@
       try { const res = await api('PUT', '/api/site', { orderUrl: $('#s-order').value.trim() }); DATA.site = res; toast('Ссылка сохранена'); }
       catch (err) { toast(err.message, 'error'); }
     });
-
-    const carEl = $('#s-carousel');
-    if (carEl) {
-      carEl.addEventListener('input', () => { $('#carousel-val').textContent = carEl.value; });
-      $('#save-carousel').addEventListener('click', async () => {
-        try { const res = await api('PUT', '/api/site', { carouselSpeed: Number(carEl.value) }); DATA.site = res; toast('Скорость сохранена'); }
-        catch (err) { toast(err.message, 'error'); }
-      });
-    }
 
     (async () => {
       let st;

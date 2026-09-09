@@ -280,13 +280,11 @@
   var filters = $('#cat-filters');
   if (filters) {
     filters.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-brand]'); if (!b) return;
-      $$('#cat-filters [data-brand]').forEach(function (x) { x.classList.toggle('subchip--active', x === b); });
-      var brand = b.dataset.brand;
+      var b = e.target.closest('[data-sub]'); if (!b) return;
+      $$('#cat-filters [data-sub]').forEach(function (x) { x.classList.toggle('subchip--active', x === b); });
+      var sub = b.dataset.sub;
       $$('#cat-products .card').forEach(function (card) {
-        var tag = card.querySelector('.card__tag');
-        var cardBrand = tag ? tag.textContent.trim() : '';
-        card.style.display = (brand === '__all' || cardBrand === brand) ? '' : 'none';
+        card.style.display = (sub === '__all' || card.dataset.sub === sub) ? '' : 'none';
       });
     });
   }
