@@ -275,12 +275,18 @@
     }
     renderCarousel(products, cats);
   }
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
   function renderCarousel(products, cats) {
     const track = $('#carousel-track');
     if (!track) return;
     let list = products;
     if (activeCatId === '__none') list = products.filter((p) => !p.categoryId || !cats.some((c) => c.id === p.categoryId));
     else if (activeCatId !== '__all') list = products.filter((p) => p.categoryId === activeCatId);
+    if (activeCatId === '__all') list = shuffle(list);
 
     const titleEl = $('#carousel-title');
     if (titleEl) {
@@ -301,26 +307,45 @@
     track.innerHTML = loop ? cardsHtml + cardsHtml : cardsHtml;
     track.classList.toggle('prod-carousel__track--static', !loop);
 
-    if (loop) startCarousel(track);
+    startCarousel(track, loop);
   }
-  function startCarousel(track) {
+  function startCarousel(track, loop) {
+    const wrap = track.parentElement;
     const speed = Math.max(8, Number(DATA.site && DATA.site.carouselSpeed) || 40);
     let offset = 0, last = null, paused = false;
-    const wrap = track.parentElement;
-    wrap.onmouseenter = () => { paused = true; };
-    wrap.onmouseleave = () => { paused = false; };
-    let resumeTimer = null;
-    wrap.ontouchstart = () => { paused = true; if (resumeTimer) clearTimeout(resumeTimer); };
-    wrap.ontouchend = () => { if (resumeTimer) clearTimeout(resumeTimer); resumeTimer = setTimeout(() => { paused = false; }, 2500); };
+    let dragging = false, moved = false, startX = 0, startOffset = 0, resumeTimer = null;
+
+    function half() { return track.scrollWidth / 2; }
+    function wrapOffset(o) {
+      if (!loop) return Math.max(0, o);
+      const h = half();
+      if (h <= 0) return o;
+      o = o % h; if (o < 0) o += h;
+      return o;
+    }
+    function apply() { track.style.transform = 'translateX(' + (-offset) + 'px)'; }
+
+    if (!loop) { wrap.style.cursor = ''; return; }
+
+    wrap.onmouseenter = () => { if (!dragging) paused = true; };
+    wrap.onmouseleave = () => { if (!dragging) paused = false; };
+    wrap.style.cursor = 'grab';
+    wrap.style.touchAction = 'pan-y';
+
+    function down(x) { dragging = true; moved = false; paused = true; startX = x; startOffset = offset; wrap.style.cursor = 'grabbing'; if (resumeTimer) clearTimeout(resumeTimer); }
+    function move(x) { if (!dragging) return; const dx = x - startX; if (Math.abs(dx) > 5) moved = true; offset = wrapOffset(startOffset - dx); apply(); }
+    function up() { if (!dragging) return; dragging = false; wrap.style.cursor = 'grab'; if (resumeTimer) clearTimeout(resumeTimer); resumeTimer = setTimeout(() => { paused = false; }, 2000); }
+
+    wrap.addEventListener('pointerdown', (e) => { down(e.clientX); try { wrap.setPointerCapture(e.pointerId); } catch (err) {} });
+    wrap.addEventListener('pointermove', (e) => { move(e.clientX); });
+    wrap.addEventListener('pointerup', up);
+    wrap.addEventListener('pointercancel', up);
+    wrap.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+
     function step(ts) {
       if (last == null) last = ts;
       const dt = (ts - last) / 1000; last = ts;
-      if (!paused) {
-        offset += speed * dt;
-        const half = track.scrollWidth / 2;
-        if (half > 0 && offset >= half) offset -= half;
-        track.style.transform = 'translateX(' + (-offset) + 'px)';
-      }
+      if (!paused && !dragging) { offset = wrapOffset(offset + speed * dt); apply(); }
       carouselAnim = requestAnimationFrame(step);
     }
     carouselAnim = requestAnimationFrame(step);
